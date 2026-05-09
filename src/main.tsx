@@ -5,7 +5,7 @@ import { authClient } from "./lib/authClient";
 import "./index.css";
 
 createRoot(document.getElementById("app")!).render(
-  <AuthProvider client={authClient}>
+  <AuthProvider client={authClient} autoRefreshOnMount={false}>
     <App />
   </AuthProvider>
 );

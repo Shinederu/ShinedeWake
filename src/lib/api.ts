@@ -47,15 +47,26 @@ const request = async <T>(method: string, action: string, payload?: Record<strin
     url.searchParams.set("action", action);
   }
 
-  const response = await fetch(url.toString(), {
-    method,
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: method === "GET" ? null : JSON.stringify({ action, ...(payload ?? {}) }),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url.toString(), {
+      method,
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: method === "GET" ? null : JSON.stringify({ action, ...(payload ?? {}) }),
+    });
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      data: null,
+      error: "Impossible de joindre l'API Wake.",
+    };
+  }
 
   let data: T | null = null;
 

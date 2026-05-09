@@ -119,7 +119,6 @@ function App() {
     }
 
     try {
-      await auth.me();
       const statusResponse = await wakeApi.getStatus();
 
       if (!statusResponse.ok || !statusResponse.data) {
