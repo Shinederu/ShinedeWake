@@ -42,10 +42,7 @@ const getErrorMessage = (payload: unknown, fallback: string): string => {
 
 const request = async <T>(method: string, action: string, payload?: Record<string, unknown>): Promise<ApiResult<T>> => {
   const url = new URL(API_BASE);
-
-  if (method === "GET") {
-    url.searchParams.set("action", action);
-  }
+  url.searchParams.set("action", action);
 
   let response: Response;
 
@@ -57,7 +54,7 @@ const request = async <T>(method: string, action: string, payload?: Record<strin
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: method === "GET" ? null : JSON.stringify({ action, ...(payload ?? {}) }),
+      body: method === "GET" ? null : JSON.stringify(payload ?? {}),
     });
   } catch {
     return {
