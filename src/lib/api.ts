@@ -1,0 +1,125 @@
+import type { WakeDevice, WakeDevicesResponse, WakeStatus, WakeStatusResponse } from "@/types/api";
+
+const API_BASE = import.meta.env.VITE_SHINEDEWAKE_API_URL;
+
+type ApiResult<T> = {
+  ok: boolean;
+  status: number;
+  data: T | null;
+  error: string | null;
+};
+
+type DevicePayload = {
+  name: string;
+  mac_address: string;
+  target_ip: string;
+  broadcast_address: string;
+  port: number;
+  description: string;
+  is_enabled: boolean;
+  sort_order: number;
+};
+
+const getErrorMessage = (payload: unknown, fallback: string): string => {
+  if (payload && typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+
+    if (typeof record.error === "string" && record.error.trim()) {
+      return record.error;
+    }
+
+    if (typeof record.message === "string" && record.message.trim()) {
+      return record.message;
+    }
+  }
+
+  if (typeof payload === "string" && payload.trim()) {
+    return payload;
+  }
+
+  return fallback;
+};
+
+const request = async <T>(method: string, action: string, payload?: Record<string, unknown>): Promise<ApiResult<T>> => {
+  const url = new URL(API_BASE);
+
+  if (method === "GET") {
+    url.searchParams.set("action", action);
+  }
+
+  const response = await fetch(url.toString(), {
+    method,
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: method === "GET" ? null : JSON.stringify({ action, ...(payload ?? {}) }),
+  });
+
+  let data: T | null = null;
+
+  try {
+    data = (await response.json()) as T;
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status,
+      data,
+      error: getErrorMessage(data, response.statusText || "Request failed"),
+    };
+  }
+
+  return {
+    ok: true,
+    status: response.status,
+    data,
+    error: null,
+  };
+};
+
+export const wakeApi = {
+  async getStatus(): Promise<ApiResult<WakeStatus>> {
+    const result = await request<WakeStatusResponse>("GET", "status");
+    const status = result.data?.data?.status ?? null;
+
+    return {
+      ok: result.ok,
+      status: result.status,
+      data: status,
+      error: result.error,
+    };
+  },
+
+  async listDevices(): Promise<ApiResult<WakeDevice[]>> {
+    const result = await request<WakeDevicesResponse>("GET", "listDevices");
+    const devices = result.data?.data?.devices ?? [];
+
+    return {
+      ok: result.ok,
+      status: result.status,
+      data: devices,
+      error: result.error,
+    };
+  },
+
+  async wakeDevice(deviceId: number): Promise<ApiResult<null>> {
+    return request("POST", "wakeDevice", { deviceId });
+  },
+
+  async createDevice(payload: DevicePayload): Promise<ApiResult<null>> {
+    return request("POST", "createDevice", payload);
+  },
+
+  async updateDevice(deviceId: number, payload: DevicePayload): Promise<ApiResult<null>> {
+    return request("PUT", "updateDevice", { id: deviceId, ...payload });
+  },
+
+  async deleteDevice(deviceId: number): Promise<ApiResult<null>> {
+    return request("DELETE", "deleteDevice", { id: deviceId });
+  },
+};
