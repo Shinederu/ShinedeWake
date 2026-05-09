@@ -412,6 +412,7 @@ function App() {
             <h3>Machines reveillables</h3>
             <span className="mono-label">{devices.length} cibles</span>
           </div>
+          <p className="lede">Le badge indique la disponibilite dans la console, pas l'etat reel d'alimentation.</p>
 
           {sortedDevices.length === 0 ? (
             <div className="empty-state">
@@ -428,7 +429,7 @@ function App() {
                       <p>{device.description || "Aucune description."}</p>
                     </div>
                     <span className={`status-pill ${device.is_enabled ? "status-on" : "status-off"}`}>
-                      {device.is_enabled ? "Actif" : "Desactive"}
+                      {device.is_enabled ? "Disponible" : "Masquee"}
                     </span>
                   </div>
 
