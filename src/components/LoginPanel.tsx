@@ -20,7 +20,7 @@ export const LoginPanel = ({ isBusy, error, onSubmit }: LoginPanelProps) => {
       <div className="eyebrow">Secure Wake Console</div>
       <h1>ShinedeWake</h1>
       <p className="lede">
-        Console privée pour réveiller les machines de ton réseau via Wake-on-LAN.
+        {"Console priv\u00e9e pour r\u00e9veiller les machines de ton r\u00e9seau via Wake-on-LAN."}
       </p>
 
       <form className="login-form" onSubmit={handleSubmit}>

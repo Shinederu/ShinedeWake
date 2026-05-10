@@ -9,6 +9,9 @@ export type WakeDevice = {
   is_enabled: boolean;
   sort_order: number;
   last_wake_at: string | null;
+  power_state: "online" | "offline" | "unknown";
+  power_state_label?: string;
+  power_state_reason: string | null;
   created_at: string;
   updated_at: string;
 };

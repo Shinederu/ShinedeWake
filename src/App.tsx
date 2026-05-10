@@ -78,6 +78,17 @@ const normalizeForm = (form: DeviceFormState) => ({
   sort_order: Number(form.sort_order || 0),
 });
 
+const formatPowerStateLabel = (state: WakeDevice["power_state"]): string => {
+  switch (state) {
+    case "online":
+      return "Allum\u00e9";
+    case "offline":
+      return "\u00c9teint";
+    default:
+      return "Ind\u00e9termin\u00e9";
+  }
+};
+
 function App() {
   const auth = useAuth();
   const [status, setStatus] = useState<WakeStatus | null>(null);
@@ -126,8 +137,8 @@ function App() {
     });
   }, [deferredUserSearch, users]);
 
-  const enabledDeviceCount = useMemo(
-    () => devices.filter((device) => device.is_enabled).length,
+  const onlineDeviceCount = useMemo(
+    () => devices.filter((device) => device.power_state === "online").length,
     [devices]
   );
 
@@ -149,7 +160,7 @@ function App() {
     ? "Admin global"
     : canManage
       ? "Gestion du panel"
-      : "Réveil uniquement";
+      : "R\u00e9veil uniquement";
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -196,7 +207,7 @@ function App() {
         setDevices([]);
         setNotice({
           kind: "error",
-          text: devicesResponse.error ?? "Impossible de charger les machines autorisées.",
+          text: devicesResponse.error ?? "Impossible de charger les machines autoris\u00e9es.",
         });
         return;
       }
@@ -212,7 +223,7 @@ function App() {
         setUsers([]);
         setNotice({
           kind: "error",
-          text: usersResponse?.error ?? "Impossible de charger les utilisateurs autorisés.",
+          text: usersResponse?.error ?? "Impossible de charger les utilisateurs autoris\u00e9s.",
         });
         return;
       }
@@ -252,7 +263,7 @@ function App() {
     try {
       const response = await auth.login({ username, password });
       if (!response.ok) {
-        setLoginError(response.error ?? "Connexion refusée.");
+        setLoginError(response.error ?? "Connexion refus\u00e9e.");
         return;
       }
 
@@ -289,11 +300,14 @@ function App() {
     try {
       const response = await wakeApi.wakeDevice(deviceId);
       if (!response.ok) {
-        setNotice({ kind: "error", text: response.error ?? "Le paquet WOL n'a pas pu être envoyé." });
+        setNotice({
+          kind: "error",
+          text: response.error ?? "Le paquet WOL n'a pas pu \u00eatre envoy\u00e9.",
+        });
         return;
       }
 
-      setNotice({ kind: "success", text: "Magic packet envoyé." });
+      setNotice({ kind: "success", text: "Magic packet envoy\u00e9." });
       await loadData();
     } finally {
       setActiveWakeId(null);
@@ -319,7 +333,7 @@ function App() {
 
       setNotice({
         kind: "success",
-        text: editingDeviceId === null ? "Machine ajoutée." : "Machine mise à jour.",
+        text: editingDeviceId === null ? "Machine ajout\u00e9e." : "Machine mise \u00e0 jour.",
       });
       resetForm();
       await loadData();
@@ -329,7 +343,7 @@ function App() {
   };
 
   const handleDeleteDevice = async (deviceId: number) => {
-    if (!window.confirm("Supprimer cette machine de la console ?")) {
+    if (!window.confirm("Supprimer cette machine du panel ?")) {
       return;
     }
 
@@ -346,7 +360,7 @@ function App() {
         resetForm();
       }
 
-      setNotice({ kind: "success", text: "Machine supprimée." });
+      setNotice({ kind: "success", text: "Machine supprim\u00e9e." });
       await loadData();
     } finally {
       setDeletingDeviceId(null);
@@ -365,11 +379,14 @@ function App() {
       const response = await wakeApi.updateUserPermissions(userId, payload);
 
       if (!response.ok) {
-        setNotice({ kind: "error", text: response.error ?? "Mise à jour des permissions impossible." });
+        setNotice({
+          kind: "error",
+          text: response.error ?? "Mise \u00e0 jour des permissions impossible.",
+        });
         return;
       }
 
-      setNotice({ kind: "success", text: "Permissions utilisateur mises à jour." });
+      setNotice({ kind: "success", text: "Permissions utilisateur mises \u00e0 jour." });
       await loadData(true);
     } finally {
       setUpdatingUserId(null);
@@ -380,7 +397,7 @@ function App() {
   if (isBooting) {
     return (
       <main className="shell loading-shell">
-        <section className="panel">
+        <section className="panel login-panel">
           <div className="eyebrow">Boot Sequence</div>
           <h1>ShinedeWake</h1>
           <p className="lede">Lecture de la session et synchronisation des machines...</p>
@@ -405,17 +422,17 @@ function App() {
         <div className="background-orbit orbit-a" />
         <div className="background-orbit orbit-b" />
         <section className="panel login-panel">
-          <div className="eyebrow">Filtre d’accès</div>
-          <h1>Accès refusé</h1>
+          <div className="eyebrow">{"Filtre d'acc\u00e8s"}</div>
+          <h1>{"Acc\u00e8s refus\u00e9"}</h1>
           <p className="lede">
-            La session est valide, mais aucun droit ShinedeWake n'est attaché à ce compte.
+            {"La session est valide, mais aucun droit ShinedeWake n'est attach\u00e9 \u00e0 ce compte."}
           </p>
           <div className="locked-user">
             <strong>{status?.user?.username ?? "Utilisateur inconnu"}</strong>
             <span>{status?.user?.email ?? ""}</span>
           </div>
           <button className="secondary-button wide-button" onClick={handleLogout}>
-            Se déconnecter
+            {"Se d\u00e9connecter"}
           </button>
         </section>
       </main>
@@ -451,10 +468,10 @@ function App() {
 
       <section className="hero-grid">
         <article className="panel hero-panel">
-          <p className="hero-kicker">Parc WOL privé</p>
-          <h2>Réveille les machines autorisées sans toucher au LAN à la main.</h2>
+          <p className="hero-kicker">Parc Wake-on-LAN</p>
+          <h2>{"D\u00e9marre les postes autoris\u00e9s en un clic."}</h2>
           <p className="lede">
-            Chaque bouton envoie un Magic Packet depuis l'API PHP située sur le même réseau que les postes cibles.
+            {"L'\u00e9tat r\u00e9seau est v\u00e9rifi\u00e9 automatiquement et l'API envoie le Magic Packet depuis le LAN."}
           </p>
           <div className="hero-stats">
             <div>
@@ -462,11 +479,11 @@ function App() {
               <strong>{devices.length}</strong>
             </div>
             <div>
-              <span>Disponibles</span>
-              <strong>{enabledDeviceCount}</strong>
+              <span>{"Allum\u00e9es"}</span>
+              <strong>{onlineDeviceCount}</strong>
             </div>
             <div>
-              <span>Dernier réveil</span>
+              <span>{"Dernier r\u00e9veil"}</span>
               <strong>{latestWakeAt ? formatDateTime(latestWakeAt) : "Jamais"}</strong>
             </div>
           </div>
@@ -476,80 +493,83 @@ function App() {
       <section className="workspace-grid">
         <section className="panel devices-panel">
           <div className="section-head">
-            <h3>Machines réveillables</h3>
+            <h3>{"Machines r\u00e9veillables"}</h3>
             <span className="mono-label">{devices.length} cibles</span>
           </div>
-          <p className="lede">
-            Le badge indique la disponibilité dans la console, pas l'état réel d'alimentation.
-          </p>
 
           {sortedDevices.length === 0 ? (
             <div className="empty-state">
-              <h4>Aucune machine configurée</h4>
-              <p>Ajoute une première cible WOL pour commencer.</p>
+              <h4>{"Aucune machine configur\u00e9e"}</h4>
+              <p>{"Ajoute une premi\u00e8re cible WOL pour commencer."}</p>
             </div>
           ) : (
             <div className="device-grid">
               {sortedDevices.map((device) => (
                 <article key={device.id} className={`device-card ${device.is_enabled ? "" : "device-card-disabled"}`}>
-                  <div className="device-card-head">
-                    <div>
-                      <h4>{device.name}</h4>
+                  <div className="device-card-layout">
+                    <div className="device-main-column">
+                      <div className="device-card-head">
+                        <div>
+                          <h4>{device.name}</h4>
+                          <p className={`status-line status-${device.power_state}`}>
+                            {formatPowerStateLabel(device.power_state)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <dl className="device-meta compact-meta">
+                        <div>
+                          <dt>IP</dt>
+                          <dd>{device.target_ip || "-"}</dd>
+                        </div>
+                        <div>
+                          <dt>{"Dernier r\u00e9veil"}</dt>
+                          <dd>{formatDateTime(device.last_wake_at)}</dd>
+                        </div>
+                      </dl>
+
+                      <div className="device-actions">
+                        <button
+                          className="primary-button"
+                          disabled={!device.is_enabled || activeWakeId === device.id}
+                          onClick={() => void handleWake(device.id)}
+                        >
+                          {activeWakeId === device.id ? "Envoi..." : "Allumer"}
+                        </button>
+
+                        {canManage ? (
+                          <>
+                            <button
+                              className="secondary-button"
+                              onClick={() => {
+                                setEditingDeviceId(device.id);
+                                setForm(mapDeviceToForm(device));
+                              }}
+                            >
+                              Modifier
+                            </button>
+                            <button
+                              className="secondary-button danger-button"
+                              disabled={deletingDeviceId === device.id}
+                              onClick={() => void handleDeleteDevice(device.id)}
+                            >
+                              {deletingDeviceId === device.id ? "Suppression..." : "Supprimer"}
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="device-sidepanel">
+                      <span className="device-side-label">Description</span>
                       <p className="device-description">{device.description || "Aucune description."}</p>
+                      {device.power_state === "unknown" && device.power_state_reason ? (
+                        <p className="helper-note">
+                          {"Statut r\u00e9el indisponible: "}
+                          {device.power_state_reason}
+                        </p>
+                      ) : null}
                     </div>
-                    <span className={`status-pill ${device.is_enabled ? "status-on" : "status-off"}`}>
-                      {device.is_enabled ? "Disponible" : "Masquée"}
-                    </span>
-                  </div>
-
-                  <dl className="device-meta">
-                    <div>
-                      <dt>IP cible</dt>
-                      <dd>{device.target_ip || "-"}</dd>
-                    </div>
-                    <div>
-                      <dt>MAC</dt>
-                      <dd>{device.mac_address}</dd>
-                    </div>
-                    <div>
-                      <dt>Broadcast</dt>
-                      <dd>{device.broadcast_address || "-"}</dd>
-                    </div>
-                    <div>
-                      <dt>Dernier réveil</dt>
-                      <dd>{formatDateTime(device.last_wake_at)}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="device-actions">
-                    <button
-                      className="primary-button"
-                      disabled={!device.is_enabled || activeWakeId === device.id}
-                      onClick={() => void handleWake(device.id)}
-                    >
-                      {activeWakeId === device.id ? "Envoi..." : "Allumer"}
-                    </button>
-
-                    {canManage ? (
-                      <>
-                        <button
-                          className="secondary-button"
-                          onClick={() => {
-                            setEditingDeviceId(device.id);
-                            setForm(mapDeviceToForm(device));
-                          }}
-                        >
-                          Modifier
-                        </button>
-                        <button
-                          className="secondary-button danger-button"
-                          disabled={deletingDeviceId === device.id}
-                          onClick={() => void handleDeleteDevice(device.id)}
-                        >
-                          {deletingDeviceId === device.id ? "Suppression..." : "Supprimer"}
-                        </button>
-                      </>
-                    ) : null}
                   </div>
                 </article>
               ))}
@@ -607,7 +627,9 @@ function App() {
                   type="text"
                   placeholder="192.168.10.255"
                   value={form.broadcast_address}
-                  onChange={(event) => setForm((current) => ({ ...current, broadcast_address: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, broadcast_address: event.target.value }))
+                  }
                 />
               </label>
 
@@ -628,7 +650,9 @@ function App() {
                   <input
                     type="number"
                     value={form.sort_order}
-                    onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, sort_order: event.target.value }))
+                    }
                   />
                 </label>
               </div>
@@ -648,7 +672,7 @@ function App() {
                   checked={form.is_enabled}
                   onChange={(event) => setForm((current) => ({ ...current, is_enabled: event.target.checked }))}
                 />
-                <span>Machine disponible dans la console</span>
+                <span>{"Machine activ\u00e9e dans le panel"}</span>
               </label>
 
               <div className="form-actions">
@@ -656,7 +680,7 @@ function App() {
                   {isSavingDevice ? "Enregistrement..." : editingDeviceId === null ? "Ajouter" : "Sauvegarder"}
                 </button>
                 <button type="button" className="secondary-button" onClick={resetForm}>
-                  Réinitialiser
+                  {"R\u00e9initialiser"}
                 </button>
               </div>
             </form>

@@ -19,22 +19,22 @@ const formatPermissionLabel = (user: WakeAccessUser): string => {
   }
 
   if (user.permission_level === "wake") {
-    return "Réveil";
+    return "R\u00e9veil";
   }
 
-  return "Aucun accès";
+  return "Aucun acc\u00e8s";
 };
 
 const formatPermissionSource = (user: WakeAccessUser): string => {
   if (user.is_global_admin) {
-    return "Hérité du rôle global";
+    return "H\u00e9rit\u00e9 du r\u00f4le global";
   }
 
   if (user.has_dedicated_entry) {
-    return "Règle dédiée ShinedeWake";
+    return "R\u00e8gle d\u00e9di\u00e9e ShinedeWake";
   }
 
-  return "Aucune autorisation dédiée";
+  return "Aucune autorisation d\u00e9di\u00e9e";
 };
 
 export function UserAccessPanel({
@@ -48,13 +48,12 @@ export function UserAccessPanel({
   return (
     <>
       <div className="section-head">
-        <h3>Accès utilisateurs</h3>
+        <h3>{"Acc\u00e8s utilisateurs"}</h3>
         <span className="mono-label">{users.length} comptes</span>
       </div>
 
       <p className="lede">
-        Les admins globaux restent toujours autorisés. Pour les autres comptes, choisis le niveau
-        d&apos;accès au panel.
+        {"Les admins globaux restent toujours autoris\u00e9s. Pour les autres comptes, choisis le niveau d'acc\u00e8s au panel."}
       </p>
 
       <div className="users-toolbar">
@@ -77,7 +76,7 @@ export function UserAccessPanel({
       ) : users.length === 0 ? (
         <div className="empty-state">
           <h4>Aucun compte correspondant</h4>
-          <p>Affinez la recherche ou crée un utilisateur dans l&apos;auth globale.</p>
+          <p>{"Affinez la recherche ou cr\u00e9e un utilisateur dans l'auth globale."}</p>
         </div>
       ) : (
         <div className="users-grid">
@@ -86,7 +85,7 @@ export function UserAccessPanel({
               <div className="user-card-head">
                 <div>
                   <h4>{user.username}</h4>
-                  <p>{user.email || "Aucun email renseigné."}</p>
+                  <p>{user.email || "Aucun email renseign\u00e9."}</p>
                 </div>
                 <span className={`permission-pill permission-${user.permission_source}`}>
                   {formatPermissionLabel(user)}
@@ -106,7 +105,7 @@ export function UserAccessPanel({
 
               <div className="user-select-row">
                 <label>
-                  <span>Accès panel</span>
+                  <span>{"Acc\u00e8s panel"}</span>
                   <select
                     className="inline-select"
                     value={user.is_global_admin ? "manage" : user.permission_level}
@@ -115,16 +114,16 @@ export function UserAccessPanel({
                       onLevelChange(user.id, event.target.value as WakePermissionLevel)
                     }
                   >
-                    <option value="none">Aucun accès</option>
-                    <option value="wake">Réveil uniquement</option>
-                    <option value="manage">Gestion complète</option>
+                    <option value="none">{"Aucun acc\u00e8s"}</option>
+                    <option value="wake">{"R\u00e9veil uniquement"}</option>
+                    <option value="manage">{"Gestion compl\u00e8te"}</option>
                   </select>
                 </label>
 
                 <p className="helper-note">
                   {user.is_global_admin
-                    ? "Compte verrouillé: les admins globaux conservent l'accès complet."
-                    : "Le niveau Gestion inclut automatiquement le droit de réveil."}
+                    ? "Compte verrouill\u00e9: les admins globaux conservent l'acc\u00e8s complet."
+                    : "Le niveau Gestion inclut automatiquement le droit de r\u00e9veil."}
                 </p>
               </div>
             </article>
