@@ -556,6 +556,21 @@ select {
 
 .inline-select {
   min-width: 220px;
+  color: #f7f6f1;
+  background:
+    linear-gradient(180deg, rgba(30, 35, 44, 0.96) 0%, rgba(19, 22, 29, 0.96) 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.inline-select:focus {
+  border-color: rgba(255, 191, 59, 0.8);
+  transform: translateY(-1px);
+}
+
+.inline-select option {
+  color: #f7f6f1;
+  background: #151922;
 }
 
 @media (max-width: 1120px) {
