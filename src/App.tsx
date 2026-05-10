@@ -523,6 +523,10 @@ function App() {
                           <dd>{device.target_ip || "-"}</dd>
                         </div>
                         <div>
+                          <dt>MAC</dt>
+                          <dd>{device.mac_address}</dd>
+                        </div>
+                        <div>
                           <dt>{"Dernier r\u00e9veil"}</dt>
                           <dd>{formatDateTime(device.last_wake_at)}</dd>
                         </div>
