@@ -298,7 +298,7 @@ select {
 }
 
 .hero-grid {
-  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.8fr);
+  grid-template-columns: 1fr;
 }
 
 .workspace-grid {
@@ -322,12 +322,12 @@ select {
 }
 
 .hero-panel .lede {
-  max-width: 62ch;
+  max-width: 72ch;
 }
 
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-top: 24px;
 }

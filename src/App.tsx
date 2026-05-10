@@ -126,6 +126,31 @@ function App() {
     });
   }, [deferredUserSearch, users]);
 
+  const enabledDeviceCount = useMemo(
+    () => devices.filter((device) => device.is_enabled).length,
+    [devices]
+  );
+
+  const latestWakeAt = useMemo(() => {
+    const timestamps = devices
+      .map((device) => device.last_wake_at)
+      .filter((value): value is string => Boolean(value))
+      .map((value) => new Date(value.replace(" ", "T")).getTime())
+      .filter((value) => !Number.isNaN(value));
+
+    if (timestamps.length === 0) {
+      return null;
+    }
+
+    return new Date(Math.max(...timestamps)).toISOString();
+  }, [devices]);
+
+  const accountLabel = status?.is_global_admin
+    ? "Admin global"
+    : canManage
+      ? "Gestion du panel"
+      : "Réveil uniquement";
+
   const resetForm = () => {
     setForm(EMPTY_FORM);
     setEditingDeviceId(null);
@@ -411,7 +436,7 @@ function App() {
         <div className="topbar-actions">
           <div className="user-chip">
             <strong>{status?.user?.username ?? "Session"}</strong>
-            <span>{canManage ? "Gestion autorisée" : "Exécution autorisée"}</span>
+            <span>{accountLabel}</span>
           </div>
           <button className="secondary-button" onClick={() => void loadData(true)} disabled={isRefreshing}>
             {isRefreshing ? "Actualisation..." : "Actualiser"}
@@ -437,36 +462,14 @@ function App() {
               <strong>{devices.length}</strong>
             </div>
             <div>
-              <span>Mode</span>
-              <strong>{canManage ? "Gestion" : "Exécution"}</strong>
+              <span>Disponibles</span>
+              <strong>{enabledDeviceCount}</strong>
             </div>
             <div>
-              <span>Compte</span>
-              <strong>{status?.is_global_admin ? "Admin global" : "Permission dédiée"}</strong>
+              <span>Dernier réveil</span>
+              <strong>{latestWakeAt ? formatDateTime(latestWakeAt) : "Jamais"}</strong>
             </div>
           </div>
-        </article>
-
-        <article className="panel short-panel">
-          <div className="section-head">
-            <h3>Console</h3>
-            <span className={`badge ${canManage ? "badge-manage" : "badge-wake"}`}>
-              {canManage ? "Manage" : "Wake"}
-            </span>
-          </div>
-          <p>
-            Les droits du site sont résolus côté backend via une table dédiée, sans modifier `users`.
-          </p>
-          <dl className="meta-list">
-            <div>
-              <dt>Email</dt>
-              <dd>{status?.user?.email ?? "-"}</dd>
-            </div>
-            <div>
-              <dt>Rôle global</dt>
-              <dd>{status?.user?.role ?? "-"}</dd>
-            </div>
-          </dl>
         </article>
       </section>
 
