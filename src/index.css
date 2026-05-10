@@ -302,7 +302,7 @@ select {
 }
 
 .workspace-grid {
-  grid-template-columns: minmax(0, 1.4fr) minmax(340px, 0.8fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.8fr);
   align-items: start;
 }
 
@@ -423,6 +423,11 @@ select {
   font-size: 0.94rem;
 }
 
+.device-description {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 .status-pill {
   align-self: start;
   padding: 8px 10px;
@@ -488,43 +493,58 @@ select {
   display: flex;
   gap: 16px;
   margin-top: 22px;
+  align-items: end;
 }
 
 .users-search {
   max-width: 380px;
 }
 
-.users-table-wrap {
+.users-grid {
   margin-top: 20px;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
 }
 
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 720px;
+.user-card {
+  padding: 20px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 18px;
 }
 
-.users-table th,
-.users-table td {
-  padding: 14px 12px;
-  text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  vertical-align: middle;
+.user-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
 }
 
-.users-table th {
+.user-card-head p {
+  margin-top: 6px;
   color: var(--text-soft);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.92rem;
 }
 
-.table-subline {
-  margin-top: 4px;
+.user-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.user-meta dt {
+  display: block;
   color: var(--text-soft);
   font-size: 0.82rem;
+  margin-bottom: 6px;
+}
+
+.user-meta dd {
+  margin: 0;
 }
 
 .permission-pill {
@@ -573,6 +593,17 @@ select {
   background: #151922;
 }
 
+.user-select-row {
+  display: grid;
+  gap: 12px;
+}
+
+.helper-note {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 1120px) {
   .hero-grid,
   .workspace-grid {
@@ -589,7 +620,8 @@ select {
   .hero-panel,
   .devices-panel,
   .admin-panel,
-  .short-panel {
+  .short-panel,
+  .users-panel {
     padding: 20px;
   }
 
@@ -613,6 +645,11 @@ select {
   }
 
   .device-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-card-head,
+  .user-meta {
     grid-template-columns: 1fr;
   }
 }

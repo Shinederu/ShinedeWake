@@ -171,7 +171,7 @@ function App() {
         setDevices([]);
         setNotice({
           kind: "error",
-          text: devicesResponse.error ?? "Impossible de charger les machines autorisees.",
+          text: devicesResponse.error ?? "Impossible de charger les machines autorisées.",
         });
         return;
       }
@@ -187,7 +187,7 @@ function App() {
         setUsers([]);
         setNotice({
           kind: "error",
-          text: usersResponse?.error ?? "Impossible de charger les utilisateurs autorises.",
+          text: usersResponse?.error ?? "Impossible de charger les utilisateurs autorisés.",
         });
         return;
       }
@@ -227,7 +227,7 @@ function App() {
     try {
       const response = await auth.login({ username, password });
       if (!response.ok) {
-        setLoginError(response.error ?? "Connexion refusee.");
+        setLoginError(response.error ?? "Connexion refusée.");
         return;
       }
 
@@ -264,11 +264,11 @@ function App() {
     try {
       const response = await wakeApi.wakeDevice(deviceId);
       if (!response.ok) {
-        setNotice({ kind: "error", text: response.error ?? "Le packet WOL n'a pas pu etre envoye." });
+        setNotice({ kind: "error", text: response.error ?? "Le paquet WOL n'a pas pu être envoyé." });
         return;
       }
 
-      setNotice({ kind: "success", text: "Magic packet envoye." });
+      setNotice({ kind: "success", text: "Magic packet envoyé." });
       await loadData();
     } finally {
       setActiveWakeId(null);
@@ -294,7 +294,7 @@ function App() {
 
       setNotice({
         kind: "success",
-        text: editingDeviceId === null ? "Machine ajoutee." : "Machine mise a jour.",
+        text: editingDeviceId === null ? "Machine ajoutée." : "Machine mise à jour.",
       });
       resetForm();
       await loadData();
@@ -321,7 +321,7 @@ function App() {
         resetForm();
       }
 
-      setNotice({ kind: "success", text: "Machine supprimee." });
+      setNotice({ kind: "success", text: "Machine supprimée." });
       await loadData();
     } finally {
       setDeletingDeviceId(null);
@@ -340,11 +340,11 @@ function App() {
       const response = await wakeApi.updateUserPermissions(userId, payload);
 
       if (!response.ok) {
-        setNotice({ kind: "error", text: response.error ?? "Mise a jour des permissions impossible." });
+        setNotice({ kind: "error", text: response.error ?? "Mise à jour des permissions impossible." });
         return;
       }
 
-      setNotice({ kind: "success", text: "Permissions utilisateur mises a jour." });
+      setNotice({ kind: "success", text: "Permissions utilisateur mises à jour." });
       await loadData(true);
     } finally {
       setUpdatingUserId(null);
@@ -380,17 +380,17 @@ function App() {
         <div className="background-orbit orbit-a" />
         <div className="background-orbit orbit-b" />
         <section className="panel login-panel">
-          <div className="eyebrow">Access Filter</div>
-          <h1>Acces refuse</h1>
+          <div className="eyebrow">Filtre d’accès</div>
+          <h1>Accès refusé</h1>
           <p className="lede">
-            La session est valide, mais aucun droit ShinedeWake n'est attache a ce compte.
+            La session est valide, mais aucun droit ShinedeWake n'est attaché à ce compte.
           </p>
           <div className="locked-user">
             <strong>{status?.user?.username ?? "Utilisateur inconnu"}</strong>
             <span>{status?.user?.email ?? ""}</span>
           </div>
           <button className="secondary-button wide-button" onClick={handleLogout}>
-            Se deconnecter
+            Se déconnecter
           </button>
         </section>
       </main>
@@ -411,10 +411,10 @@ function App() {
         <div className="topbar-actions">
           <div className="user-chip">
             <strong>{status?.user?.username ?? "Session"}</strong>
-            <span>{canManage ? "Gestion autorisee" : "Execution autorisee"}</span>
+            <span>{canManage ? "Gestion autorisée" : "Exécution autorisée"}</span>
           </div>
           <button className="secondary-button" onClick={() => void loadData(true)} disabled={isRefreshing}>
-            {isRefreshing ? "Refresh..." : "Actualiser"}
+            {isRefreshing ? "Actualisation..." : "Actualiser"}
           </button>
           <button className="secondary-button danger-button" onClick={handleLogout}>
             Quitter
@@ -426,10 +426,10 @@ function App() {
 
       <section className="hero-grid">
         <article className="panel hero-panel">
-          <p className="hero-kicker">Parc WOL prive</p>
-          <h2>Reveille les machines autorisees sans toucher au LAN a la main.</h2>
+          <p className="hero-kicker">Parc WOL privé</p>
+          <h2>Réveille les machines autorisées sans toucher au LAN à la main.</h2>
           <p className="lede">
-            Chaque bouton envoie un Magic Packet depuis l'API PHP situee sur le meme reseau que les postes cibles.
+            Chaque bouton envoie un Magic Packet depuis l'API PHP située sur le même réseau que les postes cibles.
           </p>
           <div className="hero-stats">
             <div>
@@ -438,11 +438,11 @@ function App() {
             </div>
             <div>
               <span>Mode</span>
-              <strong>{canManage ? "Gestion" : "Execution"}</strong>
+              <strong>{canManage ? "Gestion" : "Exécution"}</strong>
             </div>
             <div>
               <span>Compte</span>
-              <strong>{status?.is_global_admin ? "Admin global" : "Permission dediee"}</strong>
+              <strong>{status?.is_global_admin ? "Admin global" : "Permission dédiée"}</strong>
             </div>
           </div>
         </article>
@@ -455,7 +455,7 @@ function App() {
             </span>
           </div>
           <p>
-            Les droits du site sont resolus cote backend via une table dediee, sans modifier `users`.
+            Les droits du site sont résolus côté backend via une table dédiée, sans modifier `users`.
           </p>
           <dl className="meta-list">
             <div>
@@ -463,7 +463,7 @@ function App() {
               <dd>{status?.user?.email ?? "-"}</dd>
             </div>
             <div>
-              <dt>Role global</dt>
+              <dt>Rôle global</dt>
               <dd>{status?.user?.role ?? "-"}</dd>
             </div>
           </dl>
@@ -473,15 +473,17 @@ function App() {
       <section className="workspace-grid">
         <section className="panel devices-panel">
           <div className="section-head">
-            <h3>Machines reveillables</h3>
+            <h3>Machines réveillables</h3>
             <span className="mono-label">{devices.length} cibles</span>
           </div>
-          <p className="lede">Le badge indique la disponibilite dans la console, pas l'etat reel d'alimentation.</p>
+          <p className="lede">
+            Le badge indique la disponibilité dans la console, pas l'état réel d'alimentation.
+          </p>
 
           {sortedDevices.length === 0 ? (
             <div className="empty-state">
-              <h4>Aucune machine configuree</h4>
-              <p>Ajoute une premiere cible WOL pour commencer.</p>
+              <h4>Aucune machine configurée</h4>
+              <p>Ajoute une première cible WOL pour commencer.</p>
             </div>
           ) : (
             <div className="device-grid">
@@ -490,10 +492,10 @@ function App() {
                   <div className="device-card-head">
                     <div>
                       <h4>{device.name}</h4>
-                      <p>{device.description || "Aucune description."}</p>
+                      <p className="device-description">{device.description || "Aucune description."}</p>
                     </div>
                     <span className={`status-pill ${device.is_enabled ? "status-on" : "status-off"}`}>
-                      {device.is_enabled ? "Disponible" : "Masquee"}
+                      {device.is_enabled ? "Disponible" : "Masquée"}
                     </span>
                   </div>
 
@@ -511,7 +513,7 @@ function App() {
                       <dd>{device.broadcast_address || "-"}</dd>
                     </div>
                     <div>
-                      <dt>Dernier reveil</dt>
+                      <dt>Dernier réveil</dt>
                       <dd>{formatDateTime(device.last_wake_at)}</dd>
                     </div>
                   </dl>
@@ -651,7 +653,7 @@ function App() {
                   {isSavingDevice ? "Enregistrement..." : editingDeviceId === null ? "Ajouter" : "Sauvegarder"}
                 </button>
                 <button type="button" className="secondary-button" onClick={resetForm}>
-                  Reinitialiser
+                  Réinitialiser
                 </button>
               </div>
             </form>

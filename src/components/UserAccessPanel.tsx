@@ -19,10 +19,22 @@ const formatPermissionLabel = (user: WakeAccessUser): string => {
   }
 
   if (user.permission_level === "wake") {
-    return "Reveil";
+    return "Réveil";
   }
 
-  return "Aucun acces";
+  return "Aucun accès";
+};
+
+const formatPermissionSource = (user: WakeAccessUser): string => {
+  if (user.is_global_admin) {
+    return "Hérité du rôle global";
+  }
+
+  if (user.has_dedicated_entry) {
+    return "Règle dédiée ShinedeWake";
+  }
+
+  return "Aucune autorisation dédiée";
 };
 
 export function UserAccessPanel({
@@ -36,13 +48,13 @@ export function UserAccessPanel({
   return (
     <>
       <div className="section-head">
-        <h3>Acces utilisateurs</h3>
+        <h3>Accès utilisateurs</h3>
         <span className="mono-label">{users.length} comptes</span>
       </div>
 
       <p className="lede">
-        Les admins globaux restent toujours autorises. Pour les autres comptes, choisis le niveau
-        d&apos;acces au panel.
+        Les admins globaux restent toujours autorisés. Pour les autres comptes, choisis le niveau
+        d&apos;accès au panel.
       </p>
 
       <div className="users-toolbar">
@@ -65,50 +77,58 @@ export function UserAccessPanel({
       ) : users.length === 0 ? (
         <div className="empty-state">
           <h4>Aucun compte correspondant</h4>
-          <p>Affinez la recherche ou cree un utilisateur dans l&apos;auth globale.</p>
+          <p>Affinez la recherche ou crée un utilisateur dans l&apos;auth globale.</p>
         </div>
       ) : (
-        <div className="users-table-wrap">
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>Utilisateur</th>
-                <th>Email</th>
-                <th>Etat</th>
-                <th>Acces panel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <strong>{user.username}</strong>
-                    <div className="table-subline">#{user.id}</div>
-                  </td>
-                  <td>{user.email || "-"}</td>
-                  <td>
-                    <span className={`permission-pill permission-${user.permission_source}`}>
-                      {formatPermissionLabel(user)}
-                    </span>
-                  </td>
-                  <td>
-                    <select
-                      className="inline-select"
-                      value={user.is_global_admin ? "manage" : user.permission_level}
-                      disabled={user.is_global_admin || updatingUserId === user.id}
-                      onChange={(event) =>
-                        onLevelChange(user.id, event.target.value as WakePermissionLevel)
-                      }
-                    >
-                      <option value="none">Aucun acces</option>
-                      <option value="wake">Reveil uniquement</option>
-                      <option value="manage">Gestion complete</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="users-grid">
+          {users.map((user) => (
+            <article key={user.id} className="user-card">
+              <div className="user-card-head">
+                <div>
+                  <h4>{user.username}</h4>
+                  <p>{user.email || "Aucun email renseigné."}</p>
+                </div>
+                <span className={`permission-pill permission-${user.permission_source}`}>
+                  {formatPermissionLabel(user)}
+                </span>
+              </div>
+
+              <dl className="user-meta">
+                <div>
+                  <dt>Identifiant</dt>
+                  <dd>#{user.id}</dd>
+                </div>
+                <div>
+                  <dt>Source</dt>
+                  <dd>{formatPermissionSource(user)}</dd>
+                </div>
+              </dl>
+
+              <div className="user-select-row">
+                <label>
+                  <span>Accès panel</span>
+                  <select
+                    className="inline-select"
+                    value={user.is_global_admin ? "manage" : user.permission_level}
+                    disabled={user.is_global_admin || updatingUserId === user.id}
+                    onChange={(event) =>
+                      onLevelChange(user.id, event.target.value as WakePermissionLevel)
+                    }
+                  >
+                    <option value="none">Aucun accès</option>
+                    <option value="wake">Réveil uniquement</option>
+                    <option value="manage">Gestion complète</option>
+                  </select>
+                </label>
+
+                <p className="helper-note">
+                  {user.is_global_admin
+                    ? "Compte verrouillé: les admins globaux conservent l'accès complet."
+                    : "Le niveau Gestion inclut automatiquement le droit de réveil."}
+                </p>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </>
