@@ -38,7 +38,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -163,7 +164,8 @@ label span {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
@@ -183,6 +185,10 @@ textarea:focus {
 textarea {
   resize: vertical;
   min-height: 104px;
+}
+
+select {
+  appearance: none;
 }
 
 .primary-button,
@@ -303,7 +309,8 @@ textarea {
 .hero-panel,
 .devices-panel,
 .admin-panel,
-.short-panel {
+.short-panel,
+.users-panel {
   padding: 24px;
 }
 
@@ -469,6 +476,86 @@ textarea {
   border-radius: 22px;
   border: 1px dashed rgba(255, 255, 255, 0.12);
   color: var(--text-soft);
+}
+
+.users-panel {
+  position: relative;
+  z-index: 1;
+  margin-top: 22px;
+}
+
+.users-toolbar {
+  display: flex;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.users-search {
+  max-width: 380px;
+}
+
+.users-table-wrap {
+  margin-top: 20px;
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.users-table th,
+.users-table td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: middle;
+}
+
+.users-table th {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.table-subline {
+  margin-top: 4px;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.permission-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  border: 1px solid transparent;
+}
+
+.permission-global_admin {
+  color: #def7e7;
+  background: rgba(108, 231, 162, 0.14);
+  border-color: rgba(108, 231, 162, 0.28);
+}
+
+.permission-dedicated {
+  color: #ffe7b2;
+  background: rgba(255, 191, 59, 0.12);
+  border-color: rgba(255, 191, 59, 0.26);
+}
+
+.permission-none {
+  color: #d7deeb;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.inline-select {
+  min-width: 220px;
 }
 
 @media (max-width: 1120px) {

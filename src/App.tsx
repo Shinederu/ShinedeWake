@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@shinederu/auth-react";
 import { LoginPanel } from "@/components/LoginPanel";
+import { UserAccessPanel } from "@/components/UserAccessPanel";
 import { wakeApi } from "@/lib/api";
-import type { WakeDevice, WakeStatus } from "@/types/api";
+import type { WakeAccessUser, WakePermissionLevel, WakeDevice, WakeStatus } from "@/types/api";
 
 type DeviceFormState = {
   name: string;
@@ -88,9 +89,14 @@ function App() {
   const [editingDeviceId, setEditingDeviceId] = useState<number | null>(null);
   const [isSavingDevice, setIsSavingDevice] = useState(false);
   const [deletingDeviceId, setDeletingDeviceId] = useState<number | null>(null);
+  const [users, setUsers] = useState<WakeAccessUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
+  const [userSearch, setUserSearch] = useState("");
   const [notice, setNotice] = useState<NoticeState>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [form, setForm] = useState<DeviceFormState>(EMPTY_FORM);
+  const deferredUserSearch = useDeferredValue(userSearch);
 
   const canManage = status?.can_manage ?? false;
   const canWake = status?.can_wake ?? false;
@@ -107,6 +113,18 @@ function App() {
       }),
     [devices]
   );
+
+  const filteredUsers = useMemo(() => {
+    const normalizedSearch = deferredUserSearch.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return users;
+    }
+
+    return users.filter((user) => {
+      const haystack = `${user.username} ${user.email}`.toLowerCase();
+      return haystack.includes(normalizedSearch);
+    });
+  }, [deferredUserSearch, users]);
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -140,10 +158,15 @@ function App() {
 
       if (!statusResponse.data.authenticated || !statusResponse.data.can_wake) {
         setDevices([]);
+        setUsers([]);
         return;
       }
 
-      const devicesResponse = await wakeApi.listDevices();
+      const [devicesResponse, usersResponse] = await Promise.all([
+        wakeApi.listDevices(),
+        statusResponse.data.can_manage ? wakeApi.listUsers() : Promise.resolve(null),
+      ]);
+
       if (!devicesResponse.ok || !devicesResponse.data) {
         setDevices([]);
         setNotice({
@@ -154,6 +177,22 @@ function App() {
       }
 
       setDevices(devicesResponse.data);
+
+      if (!statusResponse.data.can_manage) {
+        setUsers([]);
+        return;
+      }
+
+      if (!usersResponse?.ok || !usersResponse.data) {
+        setUsers([]);
+        setNotice({
+          kind: "error",
+          text: usersResponse?.error ?? "Impossible de charger les utilisateurs autorises.",
+        });
+        return;
+      }
+
+      setUsers(usersResponse.data);
     } finally {
       setIsBooting(false);
       setIsRefreshing(false);
@@ -207,6 +246,7 @@ function App() {
     } finally {
       resetForm();
       setDevices([]);
+      setUsers([]);
       setStatus({
         authenticated: false,
         can_wake: false,
@@ -285,6 +325,30 @@ function App() {
       await loadData();
     } finally {
       setDeletingDeviceId(null);
+    }
+  };
+
+  const handleUpdateUserPermission = async (userId: number, level: WakePermissionLevel) => {
+    setUpdatingUserId(userId);
+    setIsLoadingUsers(true);
+
+    try {
+      const payload = {
+        can_wake: level === "wake" || level === "manage",
+        can_manage: level === "manage",
+      };
+      const response = await wakeApi.updateUserPermissions(userId, payload);
+
+      if (!response.ok) {
+        setNotice({ kind: "error", text: response.error ?? "Mise a jour des permissions impossible." });
+        return;
+      }
+
+      setNotice({ kind: "success", text: "Permissions utilisateur mises a jour." });
+      await loadData(true);
+    } finally {
+      setUpdatingUserId(null);
+      setIsLoadingUsers(false);
     }
   };
 
@@ -594,6 +658,19 @@ function App() {
           </aside>
         ) : null}
       </section>
+
+      {canManage ? (
+        <section className="panel users-panel">
+          <UserAccessPanel
+            users={filteredUsers}
+            isLoading={isLoadingUsers}
+            search={userSearch}
+            onSearchChange={setUserSearch}
+            updatingUserId={updatingUserId}
+            onLevelChange={handleUpdateUserPermission}
+          />
+        </section>
+      ) : null}
     </main>
   );
 }

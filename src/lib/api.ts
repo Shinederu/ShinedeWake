@@ -1,4 +1,12 @@
-import type { WakeDevice, WakeDevicesResponse, WakeStatus, WakeStatusResponse } from "@/types/api";
+import type {
+  WakeAccessUser,
+  WakeDevicesResponse,
+  WakeDevice,
+  WakeStatus,
+  WakeStatusResponse,
+  WakeUserResponse,
+  WakeUsersResponse,
+} from "@/types/api";
 
 const API_BASE = import.meta.env.VITE_SHINEDEWAKE_API_URL;
 
@@ -18,6 +26,11 @@ type DevicePayload = {
   description: string;
   is_enabled: boolean;
   sort_order: number;
+};
+
+type UserPermissionPayload = {
+  can_wake: boolean;
+  can_manage: boolean;
 };
 
 const getErrorMessage = (payload: unknown, fallback: string): string => {
@@ -115,6 +128,18 @@ export const wakeApi = {
     };
   },
 
+  async listUsers(): Promise<ApiResult<WakeAccessUser[]>> {
+    const result = await request<WakeUsersResponse>("GET", "listUsers");
+    const users = result.data?.data?.users ?? [];
+
+    return {
+      ok: result.ok,
+      status: result.status,
+      data: users,
+      error: result.error,
+    };
+  },
+
   async wakeDevice(deviceId: number): Promise<ApiResult<null>> {
     return request("POST", "wakeDevice", { deviceId });
   },
@@ -125,6 +150,21 @@ export const wakeApi = {
 
   async updateDevice(deviceId: number, payload: DevicePayload): Promise<ApiResult<null>> {
     return request("PUT", "updateDevice", { id: deviceId, ...payload });
+  },
+
+  async updateUserPermissions(userId: number, payload: UserPermissionPayload): Promise<ApiResult<WakeAccessUser>> {
+    const result = await request<WakeUserResponse>("PUT", "updateUserPermissions", {
+      userId,
+      ...payload,
+    });
+    const user = result.data?.data?.user ?? null;
+
+    return {
+      ok: result.ok,
+      status: result.status,
+      data: user,
+      error: result.error,
+    };
   },
 
   async deleteDevice(deviceId: number): Promise<ApiResult<null>> {
