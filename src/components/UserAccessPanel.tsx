@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+import { Plus, Search, UserPlus } from "lucide-react";
 import type { WakeAccessUser, WakePermissionLevel } from "@/types/api";
 
 type UserAccessPanelProps = {
@@ -7,6 +9,10 @@ type UserAccessPanelProps = {
   onSearchChange: (value: string) => void;
   updatingUserId: number | null;
   onLevelChange: (userId: number, level: WakePermissionLevel) => void;
+};
+
+const hasWakeAccess = (user: WakeAccessUser): boolean => {
+  return user.is_global_admin || user.effective_can_wake || user.effective_can_manage;
 };
 
 const formatPermissionLabel = (user: WakeAccessUser): string => {
@@ -19,22 +25,22 @@ const formatPermissionLabel = (user: WakeAccessUser): string => {
   }
 
   if (user.permission_level === "wake") {
-    return "R\u00e9veil";
+    return "Reveil";
   }
 
-  return "Aucun acc\u00e8s";
+  return "Aucun acces";
 };
 
 const formatPermissionSource = (user: WakeAccessUser): string => {
   if (user.is_global_admin) {
-    return "H\u00e9rit\u00e9 du r\u00f4le global";
+    return "Herite du role global";
   }
 
   if (user.has_dedicated_entry) {
     return "Role Wake dedie";
   }
 
-  return "Aucune autorisation d\u00e9di\u00e9e";
+  return "Aucune autorisation dediee";
 };
 
 export function UserAccessPanel({
@@ -45,87 +51,162 @@ export function UserAccessPanel({
   updatingUserId,
   onLevelChange,
 }: UserAccessPanelProps) {
+  const [isAddingAccess, setIsAddingAccess] = useState(false);
+  const [addUserId, setAddUserId] = useState("");
+  const [addLevel, setAddLevel] = useState<WakePermissionLevel>("wake");
+
+  const activeUsers = useMemo(() => users.filter(hasWakeAccess), [users]);
+  const inactiveUsers = useMemo(
+    () => users.filter((user) => !user.is_global_admin && !hasWakeAccess(user)),
+    [users]
+  );
+
+  const visibleUsers = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return activeUsers;
+    }
+
+    return activeUsers.filter((user) => {
+      const haystack = `${user.username} ${user.email}`.toLowerCase();
+      return haystack.includes(normalizedSearch);
+    });
+  }, [activeUsers, search]);
+
+  const selectedUserId = addUserId || String(inactiveUsers[0]?.id ?? "");
+
+  const handleAddAccess = () => {
+    const userId = Number(selectedUserId);
+    if (!userId) {
+      return;
+    }
+
+    onLevelChange(userId, addLevel);
+    setAddUserId("");
+    setAddLevel("wake");
+    setIsAddingAccess(false);
+  };
+
   return (
     <>
       <div className="section-head">
-        <h3>{"Acc\u00e8s utilisateurs"}</h3>
-        <span className="mono-label">{users.length} comptes</span>
+        <div>
+          <p className="eyebrow">Permissions</p>
+          <h2>Acces utilisateurs</h2>
+        </div>
+        <span className="count-pill">{activeUsers.length} actifs</span>
       </div>
 
       <div className="users-toolbar">
         <label className="users-search">
           <span>Recherche</span>
-          <input
-            type="search"
-            placeholder="Pseudo ou email"
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
+          <div className="search-control">
+            <Search size={17} />
+            <input
+              type="search"
+              placeholder="Filtrer les comptes autorises"
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
+          </div>
         </label>
       </div>
 
       {isLoading ? (
         <div className="empty-state">
-          <h4>Chargement des comptes</h4>
-          <p>Lecture des utilisateurs et de leurs permissions ShinedeWake...</p>
+          <h3>Chargement des comptes</h3>
+          <p>Lecture des permissions ShinedeWake...</p>
         </div>
-      ) : users.length === 0 ? (
+      ) : visibleUsers.length === 0 ? (
         <div className="empty-state">
-          <h4>Aucun compte correspondant</h4>
-          <p>{"Affinez la recherche ou cr\u00e9e un utilisateur dans l'auth globale."}</p>
+          <h3>Aucun acces affiche</h3>
+          <p>{search ? "Aucun compte autorise ne correspond a la recherche." : "Aucun compte n'a encore acces au panel."}</p>
         </div>
       ) : (
-        <div className="users-grid">
-          {users.map((user) => (
-            <article key={user.id} className="user-card">
-              <div className="user-card-head">
-                <div>
-                  <h4>{user.username}</h4>
-                  <p>{user.email || "Aucun email renseign\u00e9."}</p>
-                </div>
-                <span className={`permission-pill permission-${user.permission_source}`}>
-                  {formatPermissionLabel(user)}
-                </span>
+        <div className="users-list">
+          {visibleUsers.map((user) => (
+            <article key={user.id} className="user-row">
+              <div className="user-row-main">
+                <strong>{user.username}</strong>
+                <span>{user.email || "Aucun email renseigne."}</span>
               </div>
 
-              <dl className="user-meta">
-                <div>
-                  <dt>Identifiant</dt>
-                  <dd>#{user.id}</dd>
-                </div>
-                <div>
-                  <dt>Source</dt>
-                  <dd>{formatPermissionSource(user)}</dd>
-                </div>
-              </dl>
+              <span className={`permission-pill permission-${user.permission_source}`}>
+                {formatPermissionLabel(user)}
+              </span>
 
-              <div className="user-select-row">
-                <label>
-                  <span>{"Acc\u00e8s panel"}</span>
-                  <select
-                    className="inline-select"
-                    value={user.is_global_admin ? "manage" : user.permission_level}
-                    disabled={user.is_global_admin || updatingUserId === user.id}
-                    onChange={(event) =>
-                      onLevelChange(user.id, event.target.value as WakePermissionLevel)
-                    }
-                  >
-                    <option value="none">{"Aucun acc\u00e8s"}</option>
-                    <option value="wake">{"R\u00e9veil uniquement"}</option>
-                    <option value="manage">{"Gestion compl\u00e8te"}</option>
-                  </select>
-                </label>
+              <span className="user-row-source">{formatPermissionSource(user)}</span>
 
-                <p className="helper-note">
-                  {user.is_global_admin
-                    ? "Compte verrouill\u00e9: les admins globaux conservent l'acc\u00e8s complet."
-                    : "Le niveau Gestion inclut automatiquement le droit de r\u00e9veil."}
-                </p>
-              </div>
+              <label className="compact-select">
+                <span>Acces</span>
+                <select
+                  className="inline-select"
+                  value={user.is_global_admin ? "manage" : user.permission_level}
+                  disabled={user.is_global_admin || updatingUserId === user.id}
+                  onChange={(event) => onLevelChange(user.id, event.target.value as WakePermissionLevel)}
+                >
+                  <option value="none">Aucun acces</option>
+                  <option value="wake">Reveil uniquement</option>
+                  <option value="manage">Gestion complete</option>
+                </select>
+              </label>
             </article>
           ))}
         </div>
       )}
+
+      <div className="access-add-section">
+        {isAddingAccess ? (
+          <div className="access-add-panel">
+            <label>
+              <span>Utilisateur</span>
+              <select
+                value={selectedUserId}
+                onChange={(event) => setAddUserId(event.target.value)}
+                disabled={inactiveUsers.length === 0}
+              >
+                {inactiveUsers.length === 0 ? (
+                  <option value="">Tous les comptes ont deja un acces</option>
+                ) : (
+                  inactiveUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.username} {user.email ? `- ${user.email}` : ""}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <label>
+              <span>Niveau</span>
+              <select value={addLevel} onChange={(event) => setAddLevel(event.target.value as WakePermissionLevel)}>
+                <option value="wake">Reveil uniquement</option>
+                <option value="manage">Gestion complete</option>
+              </select>
+            </label>
+
+            <div className="access-add-actions">
+              <button
+                className="icon-button primary-button"
+                type="button"
+                disabled={inactiveUsers.length === 0 || updatingUserId !== null}
+                onClick={handleAddAccess}
+              >
+                <UserPlus size={18} />
+                Ajouter
+              </button>
+              <button className="icon-button text-button" type="button" onClick={() => setIsAddingAccess(false)}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button className="icon-button text-button" type="button" onClick={() => setIsAddingAccess(true)}>
+            <Plus size={18} />
+            Ajouter un acces
+          </button>
+        )}
+      </div>
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { FormEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@shinederu/auth-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -275,8 +275,8 @@ function App() {
   const [notice, setNotice] = useState<NoticeState>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [form, setForm] = useState<DeviceFormState>(EMPTY_FORM);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [componentToAddType, setComponentToAddType] = useState<WakeComponentType>("processor");
-  const deferredUserSearch = useDeferredValue(userSearch);
 
   const canManage = status?.can_manage ?? false;
   const canWake = status?.can_wake ?? false;
@@ -293,18 +293,6 @@ function App() {
       }),
     [devices]
   );
-
-  const filteredUsers = useMemo(() => {
-    const normalizedSearch = deferredUserSearch.trim().toLowerCase();
-    if (!normalizedSearch) {
-      return users;
-    }
-
-    return users.filter((user) => {
-      const haystack = `${user.username} ${user.email}`.toLowerCase();
-      return haystack.includes(normalizedSearch);
-    });
-  }, [deferredUserSearch, users]);
 
   const onlineDeviceCount = useMemo(
     () => devices.filter((device) => device.power_state === "online").length,
@@ -339,6 +327,30 @@ function App() {
   const resetForm = () => {
     setForm(EMPTY_FORM);
     setEditingDeviceId(null);
+    setIsEditorOpen(false);
+  };
+
+  const scrollToEditor = () => {
+    window.requestAnimationFrame(() => {
+      document.getElementById("device-editor")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const openCreateForm = () => {
+    setEditingDeviceId(null);
+    setForm(EMPTY_FORM);
+    setIsEditorOpen(true);
+    scrollToEditor();
+  };
+
+  const openEditForm = (device: WakeDevice) => {
+    setEditingDeviceId(device.id);
+    setForm(mapDeviceToForm(device));
+    setIsEditorOpen(true);
+    scrollToEditor();
   };
 
   const loadData = async (showRefreshState = false) => {
@@ -723,7 +735,15 @@ function App() {
               <p className="eyebrow">Machines</p>
               <h2>Parc Wake</h2>
             </div>
-            <span className="count-pill">{devices.length} cibles</span>
+            <div className="section-actions">
+              <span className="count-pill">{devices.length} cibles</span>
+              {canManage ? (
+                <button className="icon-button text-button" type="button" onClick={openCreateForm}>
+                  <Plus size={18} />
+                  Ajouter une machine
+                </button>
+              ) : null}
+            </div>
           </div>
 
           {sortedDevices.length === 0 ? (
@@ -810,21 +830,10 @@ function App() {
                         <>
                           <button
                             className="icon-button text-button"
-                            onClick={() => {
-                              setEditingDeviceId(device.id);
-                              setForm(mapDeviceToForm(device));
-                            }}
+                            onClick={() => openEditForm(device)}
                           >
                             <Pencil size={18} />
                             Modifier
-                          </button>
-                          <button
-                            className="icon-button danger-button"
-                            disabled={deletingDeviceId === device.id}
-                            onClick={() => void handleDeleteDevice(device.id)}
-                          >
-                            <Trash2 size={18} />
-                            {deletingDeviceId === device.id ? "Suppression" : "Supprimer"}
                           </button>
                         </>
                       ) : null}
@@ -836,8 +845,8 @@ function App() {
           )}
         </section>
 
-        {canManage ? (
-          <aside className="surface editor-surface">
+        {canManage && isEditorOpen ? (
+          <aside id="device-editor" className="surface editor-surface">
             <div className="section-head">
               <div>
                 <p className="eyebrow">{editingDeviceId === null ? "Nouveau" : "Edition"}</p>
@@ -1036,6 +1045,24 @@ function App() {
                   Reinitialiser
                 </button>
               </div>
+
+              {editingDeviceId !== null ? (
+                <div className="danger-zone">
+                  <div>
+                    <strong>Zone sensible</strong>
+                    <p>La suppression retire la machine et sa fiche materiel du panel.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-button danger-button"
+                    disabled={deletingDeviceId === editingDeviceId}
+                    onClick={() => void handleDeleteDevice(editingDeviceId)}
+                  >
+                    <Trash2 size={18} />
+                    {deletingDeviceId === editingDeviceId ? "Suppression" : "Supprimer cette machine"}
+                  </button>
+                </div>
+              ) : null}
             </form>
           </aside>
         ) : null}
@@ -1044,7 +1071,7 @@ function App() {
       {canManage ? (
         <section className="surface users-surface">
           <UserAccessPanel
-            users={filteredUsers}
+            users={users}
             isLoading={isLoadingUsers}
             search={userSearch}
             onSearchChange={setUserSearch}
