@@ -8,6 +8,7 @@ Frontend de pilotage Wake-on-LAN pour l'ecosysteme Shinederu.
 - verification des permissions metier via l'API `wake`
 - reveil Wake-on-LAN des machines autorisees
 - gestion des cibles WOL pour les utilisateurs ayant le droit de gestion
+- fiche materiel par machine via composants libres (processeur, carte mere, RAM, cartes d'extension, etc.)
 
 ## Prerequis
 
@@ -44,3 +45,4 @@ npm run build
 - Le frontend suppose que l'API `wake` partage le cookie `sid` sur `.shinederu.ch`.
 - Les droits d'acces sont resolus par le backend, pas par le frontend.
 - Les roles Wake sont administres dans le panneau Shinederu Dashboard -> Permissions (`wake.wake`, `wake.manage`) et stockes dans `core_*`.
+- Les composants materiel sont stockes cote API dans `wake_device_components` et envoyes avec chaque device.

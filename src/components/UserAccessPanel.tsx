@@ -31,7 +31,7 @@ const formatPermissionSource = (user: WakeAccessUser): string => {
   }
 
   if (user.has_dedicated_entry) {
-    return "R\u00e8gle d\u00e9di\u00e9e ShinedeWake";
+    return "Role Wake dedie";
   }
 
   return "Aucune autorisation d\u00e9di\u00e9e";
@@ -51,10 +51,6 @@ export function UserAccessPanel({
         <h3>{"Acc\u00e8s utilisateurs"}</h3>
         <span className="mono-label">{users.length} comptes</span>
       </div>
-
-      <p className="lede">
-        {"Les admins globaux restent toujours autoris\u00e9s. Pour les autres comptes, choisis le niveau d'acc\u00e8s au panel."}
-      </p>
 
       <div className="users-toolbar">
         <label className="users-search">

@@ -9,11 +9,38 @@ export type WakeDevice = {
   is_enabled: boolean;
   sort_order: number;
   last_wake_at: string | null;
+  components: WakeDeviceComponent[];
   power_state: "online" | "offline" | "unknown";
   power_state_label?: string;
   power_state_reason: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type WakeComponentType =
+  | "processor"
+  | "motherboard"
+  | "memory"
+  | "graphics_card"
+  | "storage"
+  | "network_card"
+  | "sound_card"
+  | "capture_card"
+  | "extension_card"
+  | "power_supply"
+  | "cooling"
+  | "case"
+  | "other";
+
+export type WakeDeviceComponent = {
+  id?: number;
+  device_id?: number;
+  component_type: WakeComponentType;
+  label: string;
+  details: string;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type WakePermissionLevel = "none" | "wake" | "manage";

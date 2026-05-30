@@ -17,11 +17,9 @@ export const LoginPanel = ({ isBusy, error, onSubmit }: LoginPanelProps) => {
 
   return (
     <section className="panel login-panel">
-      <div className="eyebrow">Secure Wake Console</div>
+      <div className="eyebrow">Connexion</div>
       <h1>ShinedeWake</h1>
-      <p className="lede">
-        {"Console priv\u00e9e pour r\u00e9veiller les machines de ton r\u00e9seau via Wake-on-LAN."}
-      </p>
+      <p className="lede">Compte Shinederu requis.</p>
 
       <form className="login-form" onSubmit={handleSubmit}>
         <label>

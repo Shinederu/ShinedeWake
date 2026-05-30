@@ -1,5 +1,6 @@
 import type {
   WakeAccessUser,
+  WakeDeviceComponent,
   WakeDevicesResponse,
   WakeDevice,
   WakeStatus,
@@ -26,6 +27,7 @@ type DevicePayload = {
   description: string;
   is_enabled: boolean;
   sort_order: number;
+  components: WakeDeviceComponent[];
 };
 
 type UserPermissionPayload = {

@@ -1,9 +1,48 @@
 import { FormEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@shinederu/auth-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Activity,
+  AudioLines,
+  Box,
+  Cable,
+  CircuitBoard,
+  Cpu,
+  Fan,
+  HardDrive,
+  Layers,
+  LogOut,
+  MemoryStick,
+  Monitor,
+  Network,
+  Pencil,
+  Plus,
+  Power,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  ShieldCheck,
+  Trash2,
+  X,
+} from "lucide-react";
 import { LoginPanel } from "@/components/LoginPanel";
 import { UserAccessPanel } from "@/components/UserAccessPanel";
 import { wakeApi } from "@/lib/api";
-import type { WakeAccessUser, WakePermissionLevel, WakeDevice, WakeStatus } from "@/types/api";
+import type {
+  WakeAccessUser,
+  WakeComponentType,
+  WakeDevice,
+  WakeDeviceComponent,
+  WakePermissionLevel,
+  WakeStatus,
+} from "@/types/api";
+
+type DeviceComponentFormState = {
+  local_id: string;
+  component_type: WakeComponentType;
+  label: string;
+  details: string;
+};
 
 type DeviceFormState = {
   name: string;
@@ -14,12 +53,115 @@ type DeviceFormState = {
   description: string;
   is_enabled: boolean;
   sort_order: string;
+  components: DeviceComponentFormState[];
 };
 
 type NoticeState = {
   kind: "success" | "error" | "info";
   text: string;
 } | null;
+
+type ComponentOption = {
+  type: WakeComponentType;
+  label: string;
+  placeholder: string;
+  detailsPlaceholder: string;
+  icon: LucideIcon;
+};
+
+const COMPONENT_OPTIONS: ComponentOption[] = [
+  {
+    type: "processor",
+    label: "Processeur",
+    placeholder: "AMD Ryzen 7 7800X3D",
+    detailsPlaceholder: "8 coeurs, AM5, refroidissement AIO",
+    icon: Cpu,
+  },
+  {
+    type: "motherboard",
+    label: "Carte mere",
+    placeholder: "ASUS ROG STRIX B650E-F",
+    detailsPlaceholder: "BIOS, chipset, format",
+    icon: CircuitBoard,
+  },
+  {
+    type: "memory",
+    label: "Memoire RAM",
+    placeholder: "32 Go DDR5 6000",
+    detailsPlaceholder: "2 x 16 Go, EXPO active",
+    icon: MemoryStick,
+  },
+  {
+    type: "graphics_card",
+    label: "Carte graphique",
+    placeholder: "NVIDIA RTX 4080 Super",
+    detailsPlaceholder: "VRAM, sortie ecran, usage",
+    icon: Monitor,
+  },
+  {
+    type: "storage",
+    label: "Stockage",
+    placeholder: "Samsung 990 Pro 2 To",
+    detailsPlaceholder: "NVMe systeme, SSD jeu, HDD backup",
+    icon: HardDrive,
+  },
+  {
+    type: "network_card",
+    label: "Carte reseau",
+    placeholder: "Intel X550-T2 10GbE",
+    detailsPlaceholder: "Wake-on-LAN active, VLAN, port switch",
+    icon: Network,
+  },
+  {
+    type: "sound_card",
+    label: "Carte son",
+    placeholder: "Creative Sound Blaster AE-5",
+    detailsPlaceholder: "Sorties, driver, usage",
+    icon: AudioLines,
+  },
+  {
+    type: "capture_card",
+    label: "Carte capture",
+    placeholder: "Elgato 4K60 Pro",
+    detailsPlaceholder: "HDMI, slot PCIe, source",
+    icon: Cable,
+  },
+  {
+    type: "extension_card",
+    label: "Carte d'extension",
+    placeholder: "USB-C PCIe, HBA, Thunderbolt",
+    detailsPlaceholder: "Slot, usage, ports",
+    icon: Layers,
+  },
+  {
+    type: "power_supply",
+    label: "Alimentation",
+    placeholder: "Corsair RM850x",
+    detailsPlaceholder: "850W, 80+ Gold, connectique",
+    icon: Cable,
+  },
+  {
+    type: "cooling",
+    label: "Refroidissement",
+    placeholder: "Arctic Liquid Freezer III 360",
+    detailsPlaceholder: "Ventilos, courbes, pate thermique",
+    icon: Fan,
+  },
+  {
+    type: "case",
+    label: "Boitier",
+    placeholder: "Fractal Design North",
+    detailsPlaceholder: "Format, airflow, emplacement",
+    icon: Box,
+  },
+  {
+    type: "other",
+    label: "Autre composant",
+    placeholder: "Composant specifique",
+    detailsPlaceholder: "Reference, emplacement, remarque",
+    icon: Layers,
+  },
+];
 
 const EMPTY_FORM: DeviceFormState = {
   name: "",
@@ -30,6 +172,18 @@ const EMPTY_FORM: DeviceFormState = {
   description: "",
   is_enabled: true,
   sort_order: "0",
+  components: [],
+};
+
+let componentIdCounter = 0;
+
+const createComponentId = (): string => {
+  componentIdCounter += 1;
+  return `component-${Date.now()}-${componentIdCounter}`;
+};
+
+const getComponentOption = (type: WakeComponentType): ComponentOption => {
+  return COMPONENT_OPTIONS.find((option) => option.type === type) ?? COMPONENT_OPTIONS[COMPONENT_OPTIONS.length - 1];
 };
 
 const formatDateTime = (value: string | null): string => {
@@ -65,6 +219,12 @@ const mapDeviceToForm = (device: WakeDevice): DeviceFormState => ({
   description: device.description,
   is_enabled: device.is_enabled,
   sort_order: String(device.sort_order),
+  components: device.components.map((component) => ({
+    local_id: createComponentId(),
+    component_type: component.component_type,
+    label: component.label,
+    details: component.details,
+  })),
 });
 
 const normalizeForm = (form: DeviceFormState) => ({
@@ -76,16 +236,24 @@ const normalizeForm = (form: DeviceFormState) => ({
   description: form.description.trim(),
   is_enabled: form.is_enabled,
   sort_order: Number(form.sort_order || 0),
+  components: form.components
+    .map<WakeDeviceComponent>((component, index) => ({
+      component_type: component.component_type,
+      label: component.label.trim(),
+      details: component.details.trim(),
+      sort_order: index,
+    }))
+    .filter((component) => component.label !== "" || component.details !== ""),
 });
 
 const formatPowerStateLabel = (state: WakeDevice["power_state"]): string => {
   switch (state) {
     case "online":
-      return "Allum\u00e9";
+      return "Allume";
     case "offline":
-      return "\u00c9teint";
+      return "Eteint";
     default:
-      return "Ind\u00e9termin\u00e9";
+      return "Indetermine";
   }
 };
 
@@ -107,6 +275,7 @@ function App() {
   const [notice, setNotice] = useState<NoticeState>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [form, setForm] = useState<DeviceFormState>(EMPTY_FORM);
+  const [componentToAddType, setComponentToAddType] = useState<WakeComponentType>("processor");
   const deferredUserSearch = useDeferredValue(userSearch);
 
   const canManage = status?.can_manage ?? false;
@@ -142,6 +311,11 @@ function App() {
     [devices]
   );
 
+  const componentCount = useMemo(
+    () => devices.reduce((total, device) => total + device.components.length, 0),
+    [devices]
+  );
+
   const latestWakeAt = useMemo(() => {
     const timestamps = devices
       .map((device) => device.last_wake_at)
@@ -159,8 +333,8 @@ function App() {
   const accountLabel = status?.is_global_admin
     ? "Admin global"
     : canManage
-      ? "Gestion du panel"
-      : "R\u00e9veil uniquement";
+      ? "Gestion"
+      : "Reveil";
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -207,7 +381,7 @@ function App() {
         setDevices([]);
         setNotice({
           kind: "error",
-          text: devicesResponse.error ?? "Impossible de charger les machines autoris\u00e9es.",
+          text: devicesResponse.error ?? "Impossible de charger les machines autorisees.",
         });
         return;
       }
@@ -223,7 +397,7 @@ function App() {
         setUsers([]);
         setNotice({
           kind: "error",
-          text: usersResponse?.error ?? "Impossible de charger les utilisateurs autoris\u00e9s.",
+          text: usersResponse?.error ?? "Impossible de charger les utilisateurs autorises.",
         });
         return;
       }
@@ -263,7 +437,7 @@ function App() {
     try {
       const response = await auth.login({ username, password });
       if (!response.ok) {
-        setLoginError(response.error ?? "Connexion refus\u00e9e.");
+        setLoginError(response.error ?? "Connexion refusee.");
         return;
       }
 
@@ -302,12 +476,12 @@ function App() {
       if (!response.ok) {
         setNotice({
           kind: "error",
-          text: response.error ?? "Le paquet WOL n'a pas pu \u00eatre envoy\u00e9.",
+          text: response.error ?? "Le paquet WOL n'a pas pu etre envoye.",
         });
         return;
       }
 
-      setNotice({ kind: "success", text: "Magic packet envoy\u00e9." });
+      setNotice({ kind: "success", text: "Magic packet envoye." });
       await loadData();
     } finally {
       setActiveWakeId(null);
@@ -316,6 +490,16 @@ function App() {
 
   const handleSubmitDevice = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const incompleteComponent = form.components.find(
+      (component) => component.label.trim() === "" && component.details.trim() !== ""
+    );
+
+    if (incompleteComponent) {
+      const option = getComponentOption(incompleteComponent.component_type);
+      setNotice({ kind: "error", text: `Le composant "${option.label}" doit avoir un nom.` });
+      return;
+    }
 
     setIsSavingDevice(true);
 
@@ -333,7 +517,7 @@ function App() {
 
       setNotice({
         kind: "success",
-        text: editingDeviceId === null ? "Machine ajout\u00e9e." : "Machine mise \u00e0 jour.",
+        text: editingDeviceId === null ? "Machine ajoutee." : "Machine mise a jour.",
       });
       resetForm();
       await loadData();
@@ -360,7 +544,7 @@ function App() {
         resetForm();
       }
 
-      setNotice({ kind: "success", text: "Machine supprim\u00e9e." });
+      setNotice({ kind: "success", text: "Machine supprimee." });
       await loadData();
     } finally {
       setDeletingDeviceId(null);
@@ -381,12 +565,12 @@ function App() {
       if (!response.ok) {
         setNotice({
           kind: "error",
-          text: response.error ?? "Mise \u00e0 jour des permissions impossible.",
+          text: response.error ?? "Mise a jour des permissions impossible.",
         });
         return;
       }
 
-      setNotice({ kind: "success", text: "Permissions utilisateur mises \u00e0 jour." });
+      setNotice({ kind: "success", text: "Permissions utilisateur mises a jour." });
       await loadData(true);
     } finally {
       setUpdatingUserId(null);
@@ -394,13 +578,78 @@ function App() {
     }
   };
 
+  const handleAddComponent = () => {
+    setForm((current) => ({
+      ...current,
+      components: [
+        ...current.components,
+        {
+          local_id: createComponentId(),
+          component_type: componentToAddType,
+          label: "",
+          details: "",
+        },
+      ],
+    }));
+  };
+
+  const updateComponent = (
+    localId: string,
+    updates: Partial<Pick<DeviceComponentFormState, "component_type" | "label" | "details">>
+  ) => {
+    setForm((current) => ({
+      ...current,
+      components: current.components.map((component) =>
+        component.local_id === localId ? { ...component, ...updates } : component
+      ),
+    }));
+  };
+
+  const removeComponent = (localId: string) => {
+    setForm((current) => ({
+      ...current,
+      components: current.components.filter((component) => component.local_id !== localId),
+    }));
+  };
+
+  const renderShellHeader = () => (
+    <header className="app-header">
+      <div className="brand-lockup">
+        <div className="brand-mark">
+          <Power size={24} />
+        </div>
+        <div>
+          <p className="eyebrow">Wake-on-LAN</p>
+          <h1>ShinedeWake</h1>
+        </div>
+      </div>
+
+      {isAuthenticated ? (
+        <div className="header-actions">
+          <div className="session-card">
+            <strong>{status?.user?.username ?? "Session"}</strong>
+            <span>{accountLabel}</span>
+          </div>
+          <button className="icon-button text-button" onClick={() => void loadData(true)} disabled={isRefreshing}>
+            <RefreshCw size={18} />
+            {isRefreshing ? "Actualisation" : "Actualiser"}
+          </button>
+          <button className="icon-button danger-button" onClick={handleLogout}>
+            <LogOut size={18} />
+            Quitter
+          </button>
+        </div>
+      ) : null}
+    </header>
+  );
+
   if (isBooting) {
     return (
-      <main className="shell loading-shell">
-        <section className="panel login-panel">
-          <div className="eyebrow">Boot Sequence</div>
+      <main className="app-frame loading-frame">
+        <section className="surface auth-surface">
+          <p className="eyebrow">Initialisation</p>
           <h1>ShinedeWake</h1>
-          <p className="lede">Lecture de la session et synchronisation des machines...</p>
+          <p className="lede">Lecture de la session...</p>
         </section>
       </main>
     );
@@ -408,9 +657,8 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <main className="shell">
-        <div className="background-orbit orbit-a" />
-        <div className="background-orbit orbit-b" />
+      <main className="app-frame auth-frame">
+        {renderShellHeader()}
         <LoginPanel isBusy={isAuthenticating} error={loginError} onSubmit={handleLogin} />
       </main>
     );
@@ -418,21 +666,19 @@ function App() {
 
   if (!canWake) {
     return (
-      <main className="shell">
-        <div className="background-orbit orbit-a" />
-        <div className="background-orbit orbit-b" />
-        <section className="panel login-panel">
-          <div className="eyebrow">{"Filtre d'acc\u00e8s"}</div>
-          <h1>{"Acc\u00e8s refus\u00e9"}</h1>
-          <p className="lede">
-            {"La session est valide, mais aucun droit ShinedeWake n'est attach\u00e9 \u00e0 ce compte."}
-          </p>
-          <div className="locked-user">
+      <main className="app-frame auth-frame">
+        {renderShellHeader()}
+        <section className="surface auth-surface">
+          <p className="eyebrow">Acces</p>
+          <h2>Compte non autorise</h2>
+          <p className="lede">Aucun role Wake n'est attache a ce compte.</p>
+          <div className="session-card wide-session-card">
             <strong>{status?.user?.username ?? "Utilisateur inconnu"}</strong>
             <span>{status?.user?.email ?? ""}</span>
           </div>
-          <button className="secondary-button wide-button" onClick={handleLogout}>
-            {"Se d\u00e9connecter"}
+          <button className="icon-button text-button" onClick={handleLogout}>
+            <LogOut size={18} />
+            Se deconnecter
           </button>
         </section>
       </main>
@@ -440,251 +686,354 @@ function App() {
   }
 
   return (
-    <main className="shell app-shell">
-      <div className="background-orbit orbit-a" />
-      <div className="background-orbit orbit-b" />
-
-      <header className="topbar">
-        <div>
-          <div className="eyebrow">Wake-on-LAN Control</div>
-          <h1>ShinedeWake</h1>
-        </div>
-
-        <div className="topbar-actions">
-          <div className="user-chip">
-            <strong>{status?.user?.username ?? "Session"}</strong>
-            <span>{accountLabel}</span>
-          </div>
-          <button className="secondary-button" onClick={() => void loadData(true)} disabled={isRefreshing}>
-            {isRefreshing ? "Actualisation..." : "Actualiser"}
-          </button>
-          <button className="secondary-button danger-button" onClick={handleLogout}>
-            Quitter
-          </button>
-        </div>
-      </header>
+    <main className="app-frame">
+      {renderShellHeader()}
 
       {notice ? <div className={`notice ${notice.kind}`}>{notice.text}</div> : null}
 
-      <section className="hero-grid">
-        <article className="panel hero-panel">
-          <p className="hero-kicker">Parc Wake-on-LAN</p>
-          <h2>{"D\u00e9marre les postes autoris\u00e9s en un clic."}</h2>
-          <p className="lede">
-            {"L'\u00e9tat r\u00e9seau est v\u00e9rifi\u00e9 automatiquement et l'API envoie le Magic Packet depuis le LAN."}
-          </p>
-          <div className="hero-stats">
-            <div>
-              <span>Machines</span>
-              <strong>{devices.length}</strong>
-            </div>
-            <div>
-              <span>{"Allum\u00e9es"}</span>
-              <strong>{onlineDeviceCount}</strong>
-            </div>
-            <div>
-              <span>{"Dernier r\u00e9veil"}</span>
-              <strong>{latestWakeAt ? formatDateTime(latestWakeAt) : "Jamais"}</strong>
-            </div>
-          </div>
+      <section className="summary-grid">
+        <article className="summary-tile">
+          <Activity size={20} />
+          <span>En ligne</span>
+          <strong>
+            {onlineDeviceCount}/{devices.length}
+          </strong>
+        </article>
+        <article className="summary-tile">
+          <CircuitBoard size={20} />
+          <span>Composants</span>
+          <strong>{componentCount}</strong>
+        </article>
+        <article className="summary-tile">
+          <ShieldCheck size={20} />
+          <span>Acces</span>
+          <strong>{accountLabel}</strong>
+        </article>
+        <article className="summary-tile wide-summary">
+          <Power size={20} />
+          <span>Dernier reveil</span>
+          <strong>{latestWakeAt ? formatDateTime(latestWakeAt) : "Jamais"}</strong>
         </article>
       </section>
 
-      <section className="workspace-grid">
-        <section className="panel devices-panel">
+      <section className="workspace-layout">
+        <section className="surface devices-surface">
           <div className="section-head">
-            <h3>{"Machines r\u00e9veillables"}</h3>
-            <span className="mono-label">{devices.length} cibles</span>
+            <div>
+              <p className="eyebrow">Machines</p>
+              <h2>Parc Wake</h2>
+            </div>
+            <span className="count-pill">{devices.length} cibles</span>
           </div>
 
           {sortedDevices.length === 0 ? (
             <div className="empty-state">
-              <h4>{"Aucune machine configur\u00e9e"}</h4>
-              <p>{"Ajoute une premi\u00e8re cible WOL pour commencer."}</p>
+              <h3>Aucune machine</h3>
+              <p>Ajoute une premiere cible pour utiliser le panel.</p>
             </div>
           ) : (
-            <div className="device-grid">
-              {sortedDevices.map((device) => (
-                <article key={device.id} className={`device-card ${device.is_enabled ? "" : "device-card-disabled"}`}>
-                  <div className="device-card-layout">
-                    <div className="device-main-column">
-                      <div className="device-card-head">
+            <div className="device-list">
+              {sortedDevices.map((device) => {
+                const isOnline = device.power_state === "online";
+
+                return (
+                  <article key={device.id} className={`device-card ${device.is_enabled ? "" : "is-disabled"}`}>
+                    <div className="device-status-rail" data-state={device.power_state} />
+                    <div className="device-card-main">
+                      <div className="device-title-row">
                         <div>
-                          <h4>{device.name}</h4>
-                          <p className={`status-line status-${device.power_state}`}>
-                            {formatPowerStateLabel(device.power_state)}
-                          </p>
+                          <h3>{device.name}</h3>
+                          <p>{device.description || "Aucune note materiel."}</p>
+                        </div>
+                        <span className={`state-badge state-${device.power_state}`}>
+                          {formatPowerStateLabel(device.power_state)}
+                        </span>
+                      </div>
+
+                      <div className="device-facts">
+                        <div>
+                          <span>IP</span>
+                          <strong>{device.target_ip || "-"}</strong>
+                        </div>
+                        <div>
+                          <span>MAC</span>
+                          <strong>{device.mac_address}</strong>
+                        </div>
+                        <div>
+                          <span>Broadcast</span>
+                          <strong>{device.broadcast_address || "-"}</strong>
+                        </div>
+                        <div>
+                          <span>Dernier reveil</span>
+                          <strong>{formatDateTime(device.last_wake_at)}</strong>
                         </div>
                       </div>
 
-                      <dl className="device-meta compact-meta">
-                        <div>
-                          <dt>IP</dt>
-                          <dd>{device.target_ip || "-"}</dd>
-                        </div>
-                        <div>
-                          <dt>MAC</dt>
-                          <dd>{device.mac_address}</dd>
-                        </div>
-                        <div>
-                          <dt>{"Dernier r\u00e9veil"}</dt>
-                          <dd>{formatDateTime(device.last_wake_at)}</dd>
-                        </div>
-                      </dl>
+                      {device.components.length > 0 ? (
+                        <div className="hardware-list">
+                          {device.components.map((component) => {
+                            const option = getComponentOption(component.component_type);
+                            const Icon = option.icon;
 
-                      <div className="device-actions">
-                        <button
-                          className="primary-button"
-                          disabled={!device.is_enabled || activeWakeId === device.id}
-                          onClick={() => void handleWake(device.id)}
-                        >
-                          {activeWakeId === device.id ? "Envoi..." : "Allumer"}
-                        </button>
+                            return (
+                              <div className="hardware-item" key={component.id ?? `${component.component_type}-${component.sort_order}`}>
+                                <Icon size={18} />
+                                <div>
+                                  <span>{option.label}</span>
+                                  <strong>{component.label}</strong>
+                                  {component.details ? <p>{component.details}</p> : null}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="hardware-empty">Aucun composant renseigne.</div>
+                      )}
 
-                        {canManage ? (
-                          <>
-                            <button
-                              className="secondary-button"
-                              onClick={() => {
-                                setEditingDeviceId(device.id);
-                                setForm(mapDeviceToForm(device));
-                              }}
-                            >
-                              Modifier
-                            </button>
-                            <button
-                              className="secondary-button danger-button"
-                              disabled={deletingDeviceId === device.id}
-                              onClick={() => void handleDeleteDevice(device.id)}
-                            >
-                              {deletingDeviceId === device.id ? "Suppression..." : "Supprimer"}
-                            </button>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="device-sidepanel">
-                      <span className="device-side-label">Description</span>
-                      <p className="device-description">{device.description || "Aucune description."}</p>
                       {device.power_state === "unknown" && device.power_state_reason ? (
-                        <p className="helper-note">
-                          {"Statut r\u00e9el indisponible: "}
-                          {device.power_state_reason}
-                        </p>
+                        <p className="helper-note">Statut indisponible: {device.power_state_reason}</p>
                       ) : null}
                     </div>
-                  </div>
-                </article>
-              ))}
+
+                    <div className="device-actions">
+                      <button
+                        className="icon-button primary-button"
+                        disabled={!device.is_enabled || activeWakeId === device.id || isOnline}
+                        onClick={() => void handleWake(device.id)}
+                      >
+                        <Power size={18} />
+                        {activeWakeId === device.id ? "Envoi" : isOnline ? "Allume" : "Reveiller"}
+                      </button>
+
+                      {canManage ? (
+                        <>
+                          <button
+                            className="icon-button text-button"
+                            onClick={() => {
+                              setEditingDeviceId(device.id);
+                              setForm(mapDeviceToForm(device));
+                            }}
+                          >
+                            <Pencil size={18} />
+                            Modifier
+                          </button>
+                          <button
+                            className="icon-button danger-button"
+                            disabled={deletingDeviceId === device.id}
+                            onClick={() => void handleDeleteDevice(device.id)}
+                          >
+                            <Trash2 size={18} />
+                            {deletingDeviceId === device.id ? "Suppression" : "Supprimer"}
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
 
         {canManage ? (
-          <aside className="panel admin-panel">
+          <aside className="surface editor-surface">
             <div className="section-head">
-              <h3>{editingDeviceId === null ? "Nouvelle machine" : "Modifier la machine"}</h3>
-              <span className="mono-label">{editingDeviceId === null ? "CREATE" : "EDIT"}</span>
+              <div>
+                <p className="eyebrow">{editingDeviceId === null ? "Nouveau" : "Edition"}</p>
+                <h2>{editingDeviceId === null ? "Machine" : form.name || "Machine"}</h2>
+              </div>
+              {editingDeviceId !== null ? (
+                <button className="icon-only-button" type="button" onClick={resetForm} aria-label="Fermer l'edition">
+                  <X size={18} />
+                </button>
+              ) : null}
             </div>
 
             <form className="device-form" onSubmit={handleSubmitDevice}>
-              <label>
-                <span>Nom</span>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                  required
-                />
-              </label>
-
-              <label>
-                <span>Adresse MAC</span>
-                <input
-                  type="text"
-                  placeholder="50-EB-F6-B3-5F-BB"
-                  value={form.mac_address}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      mac_address: sanitizeMacInput(event.target.value),
-                    }))
-                  }
-                  required
-                />
-              </label>
-
-              <label>
-                <span>IP cible</span>
-                <input
-                  type="text"
-                  placeholder="192.168.10.30"
-                  value={form.target_ip}
-                  onChange={(event) => setForm((current) => ({ ...current, target_ip: event.target.value }))}
-                />
-              </label>
-
-              <label>
-                <span>Adresse de broadcast</span>
-                <input
-                  type="text"
-                  placeholder="192.168.10.255"
-                  value={form.broadcast_address}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, broadcast_address: event.target.value }))
-                  }
-                />
-              </label>
-
-              <div className="field-row">
+              <fieldset>
+                <legend>Identite</legend>
                 <label>
-                  <span>Port</span>
+                  <span>Nom</span>
                   <input
-                    type="number"
-                    min="1"
-                    max="65535"
-                    value={form.port}
-                    onChange={(event) => setForm((current) => ({ ...current, port: event.target.value }))}
+                    type="text"
+                    value={form.name}
+                    onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                    required
                   />
                 </label>
-
                 <label>
-                  <span>Ordre</span>
+                  <span>Description</span>
+                  <textarea
+                    rows={3}
+                    value={form.description}
+                    onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                  />
+                </label>
+              </fieldset>
+
+              <fieldset>
+                <legend>Reseau</legend>
+                <label>
+                  <span>Adresse MAC</span>
                   <input
-                    type="number"
-                    value={form.sort_order}
+                    type="text"
+                    placeholder="50-EB-F6-B3-5F-BB"
+                    value={form.mac_address}
                     onChange={(event) =>
-                      setForm((current) => ({ ...current, sort_order: event.target.value }))
+                      setForm((current) => ({
+                        ...current,
+                        mac_address: sanitizeMacInput(event.target.value),
+                      }))
                     }
+                    required
                   />
                 </label>
-              </div>
+                <div className="field-row">
+                  <label>
+                    <span>IP cible</span>
+                    <input
+                      type="text"
+                      placeholder="192.168.10.30"
+                      value={form.target_ip}
+                      onChange={(event) => setForm((current) => ({ ...current, target_ip: event.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    <span>Broadcast</span>
+                    <input
+                      type="text"
+                      placeholder="192.168.10.255"
+                      value={form.broadcast_address}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, broadcast_address: event.target.value }))
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="field-row">
+                  <label>
+                    <span>Port</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="65535"
+                      value={form.port}
+                      onChange={(event) => setForm((current) => ({ ...current, port: event.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    <span>Ordre</span>
+                    <input
+                      type="number"
+                      value={form.sort_order}
+                      onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))}
+                    />
+                  </label>
+                </div>
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={form.is_enabled}
+                    onChange={(event) => setForm((current) => ({ ...current, is_enabled: event.target.checked }))}
+                  />
+                  <span>Machine active</span>
+                </label>
+              </fieldset>
 
-              <label>
-                <span>Description</span>
-                <textarea
-                  rows={4}
-                  value={form.description}
-                  onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                />
-              </label>
+              <fieldset>
+                <legend>Materiel</legend>
+                <div className="component-add-row">
+                  <select
+                    value={componentToAddType}
+                    onChange={(event) => setComponentToAddType(event.target.value as WakeComponentType)}
+                  >
+                    {COMPONENT_OPTIONS.map((option) => (
+                      <option key={option.type} value={option.type}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button className="icon-button text-button" type="button" onClick={handleAddComponent}>
+                    <Plus size={18} />
+                    Ajouter un composant
+                  </button>
+                </div>
 
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={form.is_enabled}
-                  onChange={(event) => setForm((current) => ({ ...current, is_enabled: event.target.checked }))}
-                />
-                <span>{"Machine activ\u00e9e dans le panel"}</span>
-              </label>
+                {form.components.length === 0 ? (
+                  <div className="inline-empty">Aucun composant dans cette fiche.</div>
+                ) : (
+                  <div className="component-editor-list">
+                    {form.components.map((component) => {
+                      const option = getComponentOption(component.component_type);
+                      const Icon = option.icon;
+
+                      return (
+                        <article className="component-editor" key={component.local_id}>
+                          <div className="component-editor-head">
+                            <div>
+                              <Icon size={18} />
+                              <strong>{option.label}</strong>
+                            </div>
+                            <button
+                              className="icon-only-button danger-button"
+                              type="button"
+                              onClick={() => removeComponent(component.local_id)}
+                              aria-label="Retirer ce composant"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                          <label>
+                            <span>Type</span>
+                            <select
+                              value={component.component_type}
+                              onChange={(event) =>
+                                updateComponent(component.local_id, {
+                                  component_type: event.target.value as WakeComponentType,
+                                })
+                              }
+                            >
+                              {COMPONENT_OPTIONS.map((availableOption) => (
+                                <option key={availableOption.type} value={availableOption.type}>
+                                  {availableOption.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span>Modele / reference</span>
+                            <input
+                              type="text"
+                              placeholder={option.placeholder}
+                              value={component.label}
+                              onChange={(event) => updateComponent(component.local_id, { label: event.target.value })}
+                            />
+                          </label>
+                          <label>
+                            <span>Details</span>
+                            <textarea
+                              rows={2}
+                              placeholder={option.detailsPlaceholder}
+                              value={component.details}
+                              onChange={(event) => updateComponent(component.local_id, { details: event.target.value })}
+                            />
+                          </label>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </fieldset>
 
               <div className="form-actions">
-                <button type="submit" className="primary-button" disabled={isSavingDevice}>
-                  {isSavingDevice ? "Enregistrement..." : editingDeviceId === null ? "Ajouter" : "Sauvegarder"}
+                <button type="submit" className="icon-button primary-button" disabled={isSavingDevice}>
+                  <Save size={18} />
+                  {isSavingDevice ? "Enregistrement" : editingDeviceId === null ? "Ajouter" : "Sauvegarder"}
                 </button>
-                <button type="button" className="secondary-button" onClick={resetForm}>
-                  {"R\u00e9initialiser"}
+                <button type="button" className="icon-button text-button" onClick={resetForm}>
+                  <RotateCcw size={18} />
+                  Reinitialiser
                 </button>
               </div>
             </form>
@@ -693,7 +1042,7 @@ function App() {
       </section>
 
       {canManage ? (
-        <section className="panel users-panel">
+        <section className="surface users-surface">
           <UserAccessPanel
             users={filteredUsers}
             isLoading={isLoadingUsers}
