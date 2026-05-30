@@ -43,3 +43,4 @@ npm run build
 
 - Le frontend suppose que l'API `wake` partage le cookie `sid` sur `.shinederu.ch`.
 - Les droits d'acces sont resolus par le backend, pas par le frontend.
+- Les roles Wake sont administres dans le panneau Shinederu Dashboard -> Permissions (`wake.wake`, `wake.manage`) et stockes dans `core_*`.
