@@ -285,8 +285,16 @@ legend {
   flex-wrap: wrap;
 }
 
+.header-actions > .icon-button,
+.header-actions > .online-status-card,
+.header-actions > .session-card {
+  height: 48px;
+  min-height: 48px;
+}
+
 .session-card {
   display: grid;
+  align-content: center;
   gap: 2px;
   min-height: 42px;
   padding: 7px 12px;
