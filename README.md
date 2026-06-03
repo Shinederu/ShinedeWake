@@ -46,3 +46,4 @@ npm run build
 - Les droits d'acces sont resolus par le backend, pas par le frontend.
 - Les roles Wake sont administres dans le panneau Shinederu Dashboard -> Permissions (`wake.wake`, `wake.manage`) et stockes dans `core_*`.
 - Les composants materiel sont stockes cote API dans `wake_device_components` et envoyes avec chaque device.
+- Le panel actualise silencieusement le statut et les machines toutes les 15 secondes quand l'onglet est visible; la liste des utilisateurs reste rechargee uniquement manuellement ou apres modification des permissions.
