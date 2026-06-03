@@ -336,7 +336,7 @@ function App() {
     scrollToEditor();
   };
 
-  const loadData = async (showRefreshState = false, showErrors = true) => {
+  const loadData = async (showRefreshState = false, showErrors = true, includeUsers = true) => {
     if (isLoadingDataRef.current) {
       return;
     }
@@ -373,9 +373,10 @@ function App() {
         return;
       }
 
+      const shouldLoadUsers = includeUsers && statusResponse.data.can_manage;
       const [devicesResponse, usersResponse] = await Promise.all([
         wakeApi.listDevices(),
-        statusResponse.data.can_manage ? wakeApi.listUsers() : Promise.resolve(null),
+        shouldLoadUsers ? wakeApi.listUsers() : Promise.resolve(null),
       ]);
 
       if (!devicesResponse.ok || !devicesResponse.data) {
@@ -393,6 +394,10 @@ function App() {
 
       if (!statusResponse.data.can_manage) {
         setUsers([]);
+        return;
+      }
+
+      if (!includeUsers) {
         return;
       }
 
@@ -429,7 +434,7 @@ function App() {
         return;
       }
 
-      void loadData(false, false);
+      void loadData(false, false, false);
     };
 
     const intervalId = window.setInterval(refreshSilently, AUTO_REFRESH_INTERVAL_MS);
