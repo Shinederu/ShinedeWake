@@ -21,7 +21,6 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
-  ShieldCheck,
   Trash2,
   X,
 } from "lucide-react";
@@ -298,25 +297,6 @@ function App() {
     () => devices.filter((device) => device.power_state === "online").length,
     [devices]
   );
-
-  const componentCount = useMemo(
-    () => devices.reduce((total, device) => total + device.components.length, 0),
-    [devices]
-  );
-
-  const latestWakeAt = useMemo(() => {
-    const timestamps = devices
-      .map((device) => device.last_wake_at)
-      .filter((value): value is string => Boolean(value))
-      .map((value) => new Date(value.replace(" ", "T")).getTime())
-      .filter((value) => !Number.isNaN(value));
-
-    if (timestamps.length === 0) {
-      return null;
-    }
-
-    return new Date(Math.max(...timestamps)).toISOString();
-  }, [devices]);
 
   const accountLabel = status?.is_global_admin
     ? "Admin global"
@@ -642,6 +622,15 @@ function App() {
             <strong>{status?.user?.username ?? "Session"}</strong>
             <span>{accountLabel}</span>
           </div>
+          {canWake ? (
+            <div className="online-status-card" aria-label={`${onlineDeviceCount} machines en ligne sur ${devices.length}`}>
+              <Activity size={18} />
+              <span>En ligne</span>
+              <strong>
+                {onlineDeviceCount}/{devices.length}
+              </strong>
+            </div>
+          ) : null}
           <button className="icon-button text-button" onClick={() => void loadData(true)} disabled={isRefreshing}>
             <RefreshCw size={18} />
             {isRefreshing ? "Actualisation" : "Actualiser"}
@@ -702,31 +691,6 @@ function App() {
       {renderShellHeader()}
 
       {notice ? <div className={`notice ${notice.kind}`}>{notice.text}</div> : null}
-
-      <section className="summary-grid">
-        <article className="summary-tile">
-          <Activity size={20} />
-          <span>En ligne</span>
-          <strong>
-            {onlineDeviceCount}/{devices.length}
-          </strong>
-        </article>
-        <article className="summary-tile">
-          <CircuitBoard size={20} />
-          <span>Composants</span>
-          <strong>{componentCount}</strong>
-        </article>
-        <article className="summary-tile">
-          <ShieldCheck size={20} />
-          <span>Acces</span>
-          <strong>{accountLabel}</strong>
-        </article>
-        <article className="summary-tile wide-summary">
-          <Power size={20} />
-          <span>Dernier reveil</span>
-          <strong>{latestWakeAt ? formatDateTime(latestWakeAt) : "Jamais"}</strong>
-        </article>
-      </section>
 
       <section className="workspace-layout">
         <section className="surface devices-surface">
