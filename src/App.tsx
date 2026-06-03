@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@shinederu/auth-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -174,6 +174,8 @@ const EMPTY_FORM: DeviceFormState = {
   components: [],
 };
 
+const AUTO_REFRESH_INTERVAL_MS = 15000;
+
 let componentIdCounter = 0;
 
 const createComponentId = (): string => {
@@ -276,6 +278,7 @@ function App() {
   const [form, setForm] = useState<DeviceFormState>(EMPTY_FORM);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [componentToAddType, setComponentToAddType] = useState<WakeComponentType>("processor");
+  const isLoadingDataRef = useRef(false);
 
   const canManage = status?.can_manage ?? false;
   const canWake = status?.can_wake ?? false;
@@ -333,7 +336,13 @@ function App() {
     scrollToEditor();
   };
 
-  const loadData = async (showRefreshState = false) => {
+  const loadData = async (showRefreshState = false, showErrors = true) => {
+    if (isLoadingDataRef.current) {
+      return;
+    }
+
+    isLoadingDataRef.current = true;
+
     if (showRefreshState) {
       setIsRefreshing(true);
     }
@@ -350,7 +359,7 @@ function App() {
           user: null,
         });
         setDevices([]);
-        if (statusResponse.error) {
+        if (showErrors && statusResponse.error) {
           setNotice({ kind: "error", text: statusResponse.error });
         }
         return;
@@ -371,10 +380,12 @@ function App() {
 
       if (!devicesResponse.ok || !devicesResponse.data) {
         setDevices([]);
-        setNotice({
-          kind: "error",
-          text: devicesResponse.error ?? "Impossible de charger les machines autorisees.",
-        });
+        if (showErrors) {
+          setNotice({
+            kind: "error",
+            text: devicesResponse.error ?? "Impossible de charger les machines autorisees.",
+          });
+        }
         return;
       }
 
@@ -387,15 +398,18 @@ function App() {
 
       if (!usersResponse?.ok || !usersResponse.data) {
         setUsers([]);
-        setNotice({
-          kind: "error",
-          text: usersResponse?.error ?? "Impossible de charger les utilisateurs autorises.",
-        });
+        if (showErrors) {
+          setNotice({
+            kind: "error",
+            text: usersResponse?.error ?? "Impossible de charger les utilisateurs autorises.",
+          });
+        }
         return;
       }
 
       setUsers(usersResponse.data);
     } finally {
+      isLoadingDataRef.current = false;
       setIsBooting(false);
       setIsRefreshing(false);
     }
@@ -404,6 +418,34 @@ function App() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !canWake) {
+      return;
+    }
+
+    const refreshSilently = () => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      void loadData(false, false);
+    };
+
+    const intervalId = window.setInterval(refreshSilently, AUTO_REFRESH_INTERVAL_MS);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSilently();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isAuthenticated, canWake]);
 
   useEffect(() => {
     if (!notice) {
