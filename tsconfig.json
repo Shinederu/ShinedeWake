@@ -28,17 +28,17 @@
         "./src/*"
       ],
       "@shinederu/auth-core": [
-        "../shinederu-auth-core/src/index.ts"
+        "../Module-Auth-Core/src/index.ts"
       ],
       "@shinederu/auth-react": [
-        "../shinederu-auth-react/src/index.ts"
+        "../Module-Auth-React/src/index.ts"
       ]
     }
   },
   "include": [
     "src",
-    "../shinederu-auth-core/src",
-    "../shinederu-auth-react/src"
+    "../Module-Auth-Core/src",
+    "../Module-Auth-React/src"
   ],
   "references": [
     {
